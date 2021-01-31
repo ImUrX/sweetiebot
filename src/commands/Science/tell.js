@@ -29,51 +29,51 @@ module.exports = class TellCommand extends Command {
 		const sent = await sending;
 		let answer = "";
 
-		if (queryresult.error) {
+		if(queryresult.error) {
 			this.client.emit("error", queryresult);
 			return sent.edit("An error happened...");
 		}
 
-		if (!queryresult.success) {
-			if (queryresult.didyoumeans) {
+		if(!queryresult.success) {
+			if(queryresult.didyoumeans) {
 				answer += "Did you mean ";
-				if (queryresult.didyoumeans.length) {
+				if(queryresult.didyoumeans.length) {
 					const didyoumeans = queryresult.didyoumeans.map(mean => mean.val);
 					const pop = didyoumeans.pop();
 					answer += `${didyoumeans.join(", ")} or ${pop}`;
-				} else {
+				} else{
 					answer += queryresult.didyoumeans.val;
 				}
-			} else if (queryresult.tips) {
+			} else if(queryresult.tips) {
 				const tip = queryresult.tips.length ? queryresult.tips[0].text : queryresult.tips.text;
 				answer += tip;
-			} else {
+			} else{
 				answer += `Sorry, couldn't find an answer to your question ${util.randomSadEmoji()}`;
 			}
 			return sent.edit(answer);
 		}
 
-		if (queryresult.warnings) {
-			if (queryresult.warnings.length) {
-				for (const { text: str } of queryresult.warnings) {
+		if(queryresult.warnings) {
+			if(queryresult.warnings.length) {
+				for(const { text: str } of queryresult.warnings) {
 					answer += `\n${str}`;
 				}
-			} else {
+			} else{
 				answer += queryresult.warnings.text;
 			}
 		}
 
-		if (queryresult.assumptions) {
+		if(queryresult.assumptions) {
 			answer += `\nThinking ${text} is ${
 				queryresult.assumptions.length ? queryresult.assumptions[0].values[0].desc : queryresult.assumptions.values[0].desc
 			}`;
 		}
 
-		if (msg.flagArgs.interpret) {
+		if(msg.flagArgs.interpret) {
 			sent.delete();
 			return TellCommand.sendPod(msg, queryresult.pods[0], answer);
 		}
-		if (queryresult.pods.length < 3) {
+		if(queryresult.pods.length < 3) {
 			sent.delete();
 			return TellCommand.sendPod(msg, queryresult.pods[queryresult.pods.length - 1], answer);
 		}
@@ -85,7 +85,7 @@ module.exports = class TellCommand extends Command {
 		);
 
 		let question = `${answer}\`\`\`md\n\t\t\t\tCurrent options for ${queryresult.pods[0].subpods[0].plaintext}`;
-		for (let i = 1; i < queryresult.pods.length; i++) {
+		for(let i = 1; i < queryresult.pods.length; i++) {
 			question += `\n[${i}]( ${queryresult.pods[i].title} )`;
 		}
 		question += "```To choose an option, reply with the number of the option.";
@@ -96,21 +96,21 @@ module.exports = class TellCommand extends Command {
 
 	static async sendPod(msg, pod, answer) {
 		const [subpod] = pod.subpods;
-		if (msg.flagArgs.plain || (subpod.plaintext && !isNaN(subpod.plaintext))) {
-			if (!subpod.plaintext) {
+		if(msg.flagArgs.plain || (subpod.plaintext && !isNaN(subpod.plaintext))) {
+			if(!subpod.plaintext) {
 				return msg.channel.send("There is no plain text...");
 			}
 			answer += `**${pod.title}**:`;
-			if (subpod.plaintext.length > 200) {
+			if(subpod.plaintext.length > 200) {
 				const gist = await util.uploadGist(subpod.plaintext);
 				answer += ` <${gist.html_url}>`;
-			} else {
+			} else{
 				answer += `\`\`\`${subpod.plaintext}\`\`\``;
 			}
 			return msg.channel.send(answer.trim());
 		}
 
-		if (msg.channel.embedable) {
+		if(msg.channel.embedable) {
 			const attachment = new MessageAttachment(await fetch(subpod.img.src).then(res => res.body), "file.png");
 			const embed = new MessageEmbed()
 				.setTitle(pod.title)
@@ -121,14 +121,14 @@ module.exports = class TellCommand extends Command {
 		}
 
 		answer += `\n**${pod.title}**:`;
-		if (subpod.plaintext && !msg.channel.attachable) {
-			if (subpod.plaintext.length > 200) {
+		if(subpod.plaintext && !msg.channel.attachable) {
+			if(subpod.plaintext.length > 200) {
 				const gist = await util.uploadGist(subpod.plaintext);
 				answer += ` <${gist.html_url}>`;
-			} else {
+			} else{
 				answer += `\`\`\`${subpod.plaintext}\`\`\``;
 			}
-		} else {
+		} else{
 			answer += `\n${subpod.img.alt}`;
 		}
 		return msg.channel.send(answer.trim(), msg.channel.attachable ? { files: [

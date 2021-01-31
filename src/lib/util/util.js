@@ -2,7 +2,7 @@ const fetch = require("node-fetch");
 const sharp = require("sharp");
 const he = require("he");
 const FormData = require("form-data");
-const { kawaii } = require("../../../auth.json");
+const { kawaii, gist } = require("../../../auth.json");
 const { Duration } = require("klasa");
 
 class Util {
@@ -64,7 +64,7 @@ class Util {
 			headers: form.getHeaders({ token: kawaii })
 		}).then(res => res.json());
 
-		if (!data.url) {
+		if(!data.url) {
 			throw data;
 		}
 
@@ -91,8 +91,8 @@ class Util {
 		let buffer = Buffer.isBuffer(img) ? img : await fetch(img).then(res => res.buffer());
 		const type = Util.getImageType(buffer);
 
-		if (!type) throw "This isn't an image";
-		if (type === "gif" && notGif) buffer = await sharp(buffer).toBuffer();
+		if(!type) throw "This isn't an image";
+		if(type === "gif" && notGif) buffer = await sharp(buffer).toBuffer();
 		return buffer;
 	}
 
@@ -107,7 +107,11 @@ class Util {
 			method: "POST",
 			body: JSON.stringify({ files: {
 				"plain.txt": { content }
-			} })
+			} }),
+			headers: {
+				Authorization: `token ${gist}`,
+				"Content-Type": "application/json"
+			}
 		}).then(res => res.json());
 	}
 
@@ -118,7 +122,7 @@ class Util {
 	 * @static
 	 */
 	static getImageType(buffer) {
-		if (Buffer.isBuffer(buffer)) {
+		if(Buffer.isBuffer(buffer)) {
 			const type = Util.magic.get(buffer.toString("hex", 0, 4));
 			return type || null;
 		}
@@ -157,7 +161,7 @@ class Util {
 	 * @static
 	 */
 	static shortify(text, limit = 0) {
-		if (limit && text.length <= limit) return text;
+		if(limit && text.length <= limit) return text;
 
 		let paragraph = text.match(/((?:.|\n)+?\.)( +)?\n/g);
 		paragraph = paragraph ? paragraph[0] : text;
@@ -171,7 +175,7 @@ class Util {
 	 */
 	static randomColor() {
 		const rgb = [];
-		for (let i = 0; i < 3; i++) {
+		for(let i = 0; i < 3; i++) {
 			rgb.push(Math.floor(Math.random() * 256));
 		}
 		return rgb;
@@ -192,7 +196,7 @@ class Util {
 		const minutes = Math.floor(offset / 60);
 		offset %= 60;
 
-		return `${years > 0 ? `${years}y` : ""}${
+		return`${years > 0 ? `${years}y` : ""}${
 			months > 0 ? `${months}mo` : ""}${
 			days > 0 ? `${days}d ` : ""}${
 			hours > 0 ? `${hours}h` : ""}${

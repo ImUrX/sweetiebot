@@ -17,7 +17,7 @@ module.exports = class extends Command {
 	}
 
 	async connect() {
-		const vndb = new VNDB("sweetiebot-klasa");
+		const vndb = new VNDB("sweetiebot");
 		await vndb.login();
 		return vndb;
 	}
@@ -34,7 +34,7 @@ module.exports = class extends Command {
 		const vndb = await this.connect();
 		const { items } = await vndb.get("vn", ["basic", "details", "stats", "relations"], `(title ~ "${query}")`);
 		vndb.end();
-		if (!items.length) return msg.send(`No results found ${util.randomSadEmoji()}`);
+		if(!items.length) return msg.send(`No results found ${util.randomSadEmoji()}`);
 		const item = items[0];
 
 		const info = {
@@ -47,19 +47,19 @@ module.exports = class extends Command {
 				strings: []
 			}
 		};
-		if (item.original) info.desc.push(`${embedBold.put("Original Title")}: ${item.original}`);
-		if (item.aliases) info.desc.push(`${embedBold.put(`Alias${item.aliases.split("\n").length > 1 ? "es" : ""}`)}: ${item.aliases.replace(/\n/g, ", ")}`);
-		if (item.description) info.desc.push(`\n${util.shortify(convertFormatting(item.description))}`);
+		if(item.original) info.desc.push(`${embedBold.put("Original Title")}: ${item.original}`);
+		if(item.aliases) info.desc.push(`${embedBold.put(`Alias${item.aliases.split("\n").length > 1 ? "es" : ""}`)}: ${item.aliases.replace(/\n/g, ", ")}`);
+		if(item.description) info.desc.push(`\n${util.shortify(convertFormatting(item.description))}`);
 
-		if (item.released) info.general.push(`${convertReleaseDate(item.released) > Date.now() ? "Going to be released" : "Released"} on ${item.released.toUpperCase()}`);
+		if(item.released) info.general.push(`${convertReleaseDate(item.released) > Date.now() ? "Going to be released" : "Released"} on ${item.released.toUpperCase()}`);
 		info.general.push(`It's ${this.length[item.length || 0]}`);
-		if (item.platforms.length) {
+		if(item.platforms.length) {
 			info.general.push(`${embedBold.put(`Platform${item.platforms.length > 1 ? "s" : ""}`)}: ${
 				item.platforms.map(embedBold[0] ? val => this.platformsEmojis[val] : val => this.platforms[val]).join(embedBold[0] ? "" : "/")
 			}`);
 		}
-		if (item.orig_lang.length) info.general.push(`${embedBold.put(`Original Language${item.orig_lang.length > 1 ? "s" : ""}`)}: ${item.orig_lang.join(embedBold[0] ? " - " : "/")}`);
-		if (item.languages.length) info.general.push(`${embedBold.put(`Language${item.languages.length > 1 ? "s" : ""}`)}: ${item.languages.join(embedBold[0] ? " - " : "/")}`);
+		if(item.orig_lang.length) info.general.push(`${embedBold.put(`Original Language${item.orig_lang.length > 1 ? "s" : ""}`)}: ${item.orig_lang.join(embedBold[0] ? " - " : "/")}`);
+		if(item.languages.length) info.general.push(`${embedBold.put(`Language${item.languages.length > 1 ? "s" : ""}`)}: ${item.languages.join(embedBold[0] ? " - " : "/")}`);
 
 		info.stats.push(
 			`${embedBold.put("Popularity")}: ${item.popularity}/100`,
@@ -72,49 +72,49 @@ module.exports = class extends Command {
 			val => ({ ...val, toString: () => `${val.title} (${val.relation})` })
 		);
 		info.relations.official.push(...relationsFormatted.filter(val => val.official));
-		if (info.relations.official.length) info.relations.strings.push(`**Official**: ${info.relations.official.join(", ")}`);
+		if(info.relations.official.length) info.relations.strings.push(`**Official**: ${info.relations.official.join(", ")}`);
 		info.relations.nonofficial.push(...relationsFormatted.filter(val => !val.official));
-		if (info.relations.nonofficial.length) info.relations.strings.push(`**Non-Official**: ${info.relations.nonofficial.join(", ")}`);
+		if(info.relations.nonofficial.length) info.relations.strings.push(`**Non-Official**: ${info.relations.nonofficial.join(", ")}`);
 
 
-		if (embedBold[0]) {
+		if(embedBold[0]) {
 			const embed = new MessageEmbed()
 				.setTitle(item.title)
 				.setURL(`https://vndb.org/v${item.id}`);
-			if (item.image && (!item.image_nsfw || msg.channel.nsfw)) embed.setThumbnail(item.image);
+			if(item.image && (!item.image_nsfw || msg.channel.nsfw)) embed.setThumbnail(item.image);
 
-			if (info.desc.length) embed.setDescription(info.desc.join("\n").trim());
-			if (info.general.length) embed.addField("General Info", `• ${info.general.join("\n• ")}`, true);
+			if(info.desc.length) embed.setDescription(info.desc.join("\n").trim());
+			if(info.general.length) embed.addField("General Info", `• ${info.general.join("\n• ")}`, true);
 			embed.addField("User Statistics", `• ${info.stats.join("\n• ")}`, true);
 
-			if (info.relations.strings.length) embed.addField("Relations", info.relations.strings.join("\n"));
+			if(info.relations.strings.length) embed.addField("Relations", info.relations.strings.join("\n"));
 
 			const links = [];
-			if (item.links.wikidata) {
+			if(item.links.wikidata) {
 				const wikidata = await fetch(`https://www.wikidata.org/w/api.php?action=wbgetentities&format=json&ids=${item.links.wikidata}`).then(res => res.json());
 				const type = wikidata.entities[item.links.wikidata].sitelinks.enwiki ? "en" : "ja";
-				if (wikidata.success && wikidata.entities[item.links.wikidata].sitelinks[`${type}wiki`]) {
+				if(wikidata.success && wikidata.entities[item.links.wikidata].sitelinks[`${type}wiki`]) {
 					links.push(`[${type === "en" ? "English" : "Japanese"} Wikpedia](https://${type}.wikipedia.org/wiki/${
 						encodeURIComponent(wikidata.entities[item.links.wikidata].sitelinks[`${type}wiki`].title)
 					})`);
 				}
 				links.push(`[Wikidata](https://www.wikidata.org/wiki/${item.links.wikidata})`);
 			}
-			if (item.links.renai) links.push(`[Ren'Ai](https://renai.us/game/${item.links.renai})`);
-			if (links.length) embed.addField("Related Links", links.join(" - "));
+			if(item.links.renai) links.push(`[Ren'Ai](https://renai.us/game/${item.links.renai})`);
+			if(links.length) embed.addField("Related Links", links.join(" - "));
 
 			return msg.send(embed);
 		}
 
 		let block = `**${item.title}** <https://vndb.org/v${item.id}>\`\`\`md\n`;
-		if (info.desc.length) block += info.desc.join("\n").trim();
-		if (info.general.length) {
+		if(info.desc.length) block += info.desc.join("\n").trim();
+		if(info.general.length) {
 			block += `\n/* General Info *
 <${info.general.join(">\n<")}>`;
 		}
 		block += `\n/* User Statistics *
 <${info.stats.join(">\n<")}>`;
-		if (info.relations.strings.length) {
+		if(info.relations.strings.length) {
 			block += `\n/* Relations *
 ${info.relations.strings.join("\n")}`;
 		}
@@ -215,7 +215,7 @@ ${info.relations.strings.join("\n")}`;
 };
 
 function convertReleaseDate(release) {
-	if (release === "tba") return Date.now() + 3.6e+6;
+	if(release === "tba") return Date.now() + 3.6e+6;
 	const date = [new Date().getFullYear() + 1, 1, 1];
 	release.split("-").forEach((val, i) => { date[i] = parseInt(val); });
 	date[1] -= 1;
@@ -239,8 +239,8 @@ function convertFormatting(string) {
 	return string
 		.replace(/[cdprsuv]\d+(.\d+)?/g, "[$&](https://vndb.org/$&)")
 		.replace(/\[url=(.+)\](.+)\[\/url\]/g, (match, url, text) => {
-			if (url.startsWith("/")) url = `https://vndb.org${url}`;
-			return `[${text}](${url})`;
+			if(url.startsWith("/")) url = `https://vndb.org${url}`;
+			return`[${text}](${url})`;
 		})
 		.replace(/\[spoiler\](.+)\[\/spoiler\]/g, "||$1||")
 		.replace(/\[quote\](.+)\[\/quote\]/g, "``$1``")

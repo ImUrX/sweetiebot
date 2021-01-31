@@ -12,7 +12,7 @@ module.exports = class extends Extendable {
 	 * @returns {RichDisplay}
 	 */
 	addPages(...pages) {
-		for (const page of pages) {
+		for(const page of pages) {
 			this.addPage(page);
 		}
 		return this;

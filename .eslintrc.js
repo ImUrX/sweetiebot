@@ -15,6 +15,9 @@ module.exports = {
         ],
         complexity: [
             "off"
+        ],
+        "keyword-spacing": [
+            "off"
         ]
     }
 };

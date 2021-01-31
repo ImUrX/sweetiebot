@@ -49,7 +49,7 @@ module.exports = class extends Provider {
 	/* Document methods */
 
 	getAll(table, filter = []) {
-		if (filter.length) return this.db.collection(table).find({ id: { $in: filter } }, { _id: 0 }).toArray();
+		if(filter.length) return this.db.collection(table).find({ id: { $in: filter } }, { _id: 0 }).toArray();
 		return this.db.collection(table).find({}, { _id: 0 }).toArray();
 	}
 
@@ -91,7 +91,7 @@ const resolveQuery = query => isObject(query) ? query : { id: query };
 
 function flatten(obj, path = "") {
 	let output = {};
-	for (const [key, value] of Object.entries(obj)) {
+	for(const [key, value] of Object.entries(obj)) {
 		if (isObject(value)) output = Object.assign(output, flatten(value, path ? `${path}.${key}` : key));
 		else output[path ? `${path}.${key}` : key] = value;
 	}

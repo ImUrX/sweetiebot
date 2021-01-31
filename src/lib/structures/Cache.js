@@ -33,7 +33,7 @@ module.exports = class Cache {
 	 * @returns {Promise<Buffer|string>}
 	 */
 	async set(key, data, ...options) {
-		if (!options.length) options = ["EX", 3600];
+		if(!options.length) options = ["EX", 3600];
 		const serializer = this.client.serializers.resolve(data.type);
 		data.value = serializer.serialize(data.value);
 		return this.redis.set(key, JSON.stringify(data), ...options);

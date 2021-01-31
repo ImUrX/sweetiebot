@@ -25,17 +25,17 @@ module.exports = class extends SweetieCommand {
 		const prev = await msg.send("Searching in Jisho...");
 		const { data, meta } = await fetch(`${jishoextender}/search/words?keyword=${encodeURIComponent(vocabQuery)}`)
 			.then(res => res.json());
-		if (meta.status !== 200) {
+		if(meta.status !== 200) {
 			return msg.send(`Error ${meta.status} received`);
 		}
-		if (data.length === 0) return msg.send(`No results found ${util.randomSadEmoji()}`);
+		if(data.length === 0) return msg.send(`No results found ${util.randomSadEmoji()}`);
 
 
 		const word = data[0];
-		if (msg.flagArgs.furigana) return msg.send(await util.getKawaiiLink(this.generateFurigana(word)));
-		if (msg.flagArgs.audio) {
-			if (!word.audio.mp3) return msg.send("There is no audio on this word");
-			if (msg.channel.attachable) {
+		if(msg.flagArgs.furigana) return msg.send(await util.getKawaiiLink(this.generateFurigana(word)));
+		if(msg.flagArgs.audio) {
+			if(!word.audio.mp3) return msg.send("There is no audio on this word");
+			if(msg.channel.attachable) {
 				prev.delete();
 				return msg.send(
 					new MessageAttachment(await fetch(word.audio.mp3).then(res => res.buffer()), "wanikani.mp3")
@@ -44,8 +44,8 @@ module.exports = class extends SweetieCommand {
 			return msg.send(word.audio.mp3);
 		}
 
-		if (msg.channel.embedable && !msg.flagArgs.plain) {
-			if (msg.channel.enrichable && data.length > 1) {
+		if(msg.channel.embedable && !msg.flagArgs.plain) {
+			if(msg.channel.enrichable && data.length > 1) {
 				const display = new RichDisplay();
 				display.addPages(...await Promise.all(
 					data.map(slug => this.generateEmbed(slug))
@@ -62,9 +62,9 @@ module.exports = class extends SweetieCommand {
 		let block = `**${
 			word.japanese[0].word ? `${word.japanese[0].word} 【${word.japanese[0].reading}】` : word.japanese[0].reading
 		}**:\`\`\`md${tags.length ? `\n<tags: ${tags.join(" - ")}>` : ""}`;
-		for (let i = 0; i < word.senses.length; i++) {
+		for(let i = 0; i < word.senses.length; i++) {
 			const sense = word.senses[i];
-			if (sense.parts_of_speech.length) block += `\n# ${sense.parts_of_speech.join(", ")}`;
+			if(sense.parts_of_speech.length) block += `\n# ${sense.parts_of_speech.join(", ")}`;
 
 			let meaning = `\n${i + 1}. ${sense.english_definitions.join("; ")}`;
 			const info = [
@@ -73,16 +73,16 @@ module.exports = class extends SweetieCommand {
 				...sense.see_also.map(also => `See also ${also}`),
 				...sense.info
 			].join(", ");
-			if (info) meaning += ` - ${info}`;
+			if(info) meaning += ` - ${info}`;
 			block += meaning;
 		}
 
 		const forms = [];
-		for (let i = 1; i < word.japanese.length; i++) {
+		for(let i = 1; i < word.japanese.length; i++) {
 			const form = word.japanese[i];
 			forms.push(`${form.word} 【${form.reading}】`);
 		}
-		if (forms.length > 1) block += `\n# Other forms\n${forms.join("、")}`;
+		if(forms.length > 1) block += `\n# Other forms\n${forms.join("、")}`;
 		block += "```";
 
 		return msg.send(block);
@@ -108,17 +108,17 @@ module.exports = class extends SweetieCommand {
 		canvas.setTextSize(newSize)
 			.addText(word, halfWidth, halfHeight);
 
-		if (!first.furigana.length) return canvas.toBufferAsync();
+		if(!first.furigana.length) return canvas.toBufferAsync();
 
 		let firstCharX = halfWidth;
-		if (even) {
+		if(even) {
 			firstCharX -= Math.floor(newSize / 2);
-		} else if (reducer) {
+		} else if(reducer) {
 			firstCharX -= newSize;
 		}
 		firstCharX -= newSize * (Math.floor(word.length / 2) - reducer);
 
-		for (let i = 0; i < first.furigana.length; i++) {
+		for(let i = 0; i < first.furigana.length; i++) {
 			const furigana = first.furigana[i];
 			canvas.setTextSize(16)
 				.measureText(furigana, (furSize) => {
@@ -135,8 +135,8 @@ module.exports = class extends SweetieCommand {
 			.setTitle(word.japanese[0].word || word.japanese[0].reading)
 			.setURL(`https://jisho.org/word/${encodeURIComponent(word.slug)}`);
 		const tags = processTags(word).join(" - ");
-		if (tags) embed.setDescription(`**tags**: ${tags}`);
-		for (let i = 0; i < word.senses.length; i++) {
+		if(tags) embed.setDescription(`**tags**: ${tags}`);
+		for(let i = 0; i < word.senses.length; i++) {
 			const sense = word.senses[i];
 			let meaning = `${i + 1}. **${sense.english_definitions.join("; ")}** `;
 
@@ -148,7 +148,7 @@ module.exports = class extends SweetieCommand {
 			].join(", ");
 			meaning += sense.links.map(link => `[${link.text}](${link.url})`).join("\n");
 
-			if (!sense.parts_of_speech.length && embed.fields.length) {
+			if(!sense.parts_of_speech.length && embed.fields.length) {
 				embed.fields[embed.fields.length - 1].value += `\n${meaning}`;
 				continue;
 			}
@@ -156,17 +156,17 @@ module.exports = class extends SweetieCommand {
 		}
 
 		const forms = [];
-		for (let i = 1; i < word.japanese.length; i++) {
+		for(let i = 1; i < word.japanese.length; i++) {
 			const form = word.japanese[i];
 			forms.push(`${form.word} 【${form.reading}】`);
 		}
-		if (forms.length > 1) embed.addField("Other forms", forms.join("、"));
+		if(forms.length > 1) embed.addField("Other forms", forms.join("、"));
 
 		const additionalLinks = [];
-		if (word.audio.mp3) additionalLinks.push(`[Audio (MP3)](${word.audio.mp3})`);
-		if (word.audio.ogg) additionalLinks.push(`[Audio (OGG)](${word.audio.ogg})`);
-		if (word.attribution.dbpedia) additionalLinks.push(`[DBPedia](${word.attribution.dbpedia})`);
-		if (additionalLinks.length) embed.addField("Related links", additionalLinks.join(" - "));
+		if(word.audio.mp3) additionalLinks.push(`[Audio (MP3)](${word.audio.mp3})`);
+		if(word.audio.ogg) additionalLinks.push(`[Audio (OGG)](${word.audio.ogg})`);
+		if(word.attribution.dbpedia) additionalLinks.push(`[DBPedia](${word.attribution.dbpedia})`);
+		if(additionalLinks.length) embed.addField("Related links", additionalLinks.join(" - "));
 
 		return util.getKawaiiLink(this.generateFurigana(word)).then(thumb => embed.setThumbnail(thumb));
 	}
@@ -175,15 +175,15 @@ module.exports = class extends SweetieCommand {
 
 function processTags(word) {
 	const arr = [];
-	if (word.is_common) arr.push("common word");
-	for (const tag of word.tags) {
-		if (tag.startsWith("wanikani")) {
+	if(word.is_common) arr.push("common word");
+	for(const tag of word.tags) {
+		if(tag.startsWith("wanikani")) {
 			arr.push(`wanikani lvl${tag.substring(8)}`);
-		} else {
+		} else{
 			console.log("discovered new tag", tag);
 		}
 	}
-	for (const lvl of word.jlpt) {
+	for(const lvl of word.jlpt) {
 		arr.push(lvl.replace("-", " "));
 	}
 	return arr;
