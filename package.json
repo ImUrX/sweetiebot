@@ -1,37 +1,42 @@
 {
   "name": "sweetiebot",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "description": "A discord bot made for your weird needs",
   "main": "index.js",
   "repository": "https://github.com/ImUrX/sweetiebot.git",
   "author": "ImUrX <urielfontan2002@gmail.com>",
   "license": "MIT",
+  "engines": {
+    "node": ">=16.6"
+  },
   "scripts": {
     "genSchemas": "npx get-graphql-schema \"https://graphql.anilist.co/\" -j | tee assets/schemas/anilist.json",
     "getFonts": "chmod +x ./getFonts.sh && ./getFonts.sh"
   },
   "devDependencies": {
-    "@playlyfe/gql": "^2.6.2",
-    "babel-eslint": "^10.1.0",
-    "eslint": "^6.8.0",
-    "eslint-config-klasa": "dirigeants/klasa-lint"
+    "@babel/core": "^7.15.5",
+    "@babel/eslint-parser": "^7.15.7",
+    "@babel/eslint-plugin": "^7.14.5",
+    "@babel/preset-env": "^7.15.6",
+    "eslint": "^7.32.0"
   },
   "dependencies": {
-    "@discordjs/opus": "^0.1.0",
-    "canvas": "^2.6.1",
-    "canvas-constructor": "^3.2.0",
-    "discord.js": "discordjs/discord.js",
-    "fake-tag": "^2.0.0",
-    "form-data": "^3.0.0",
-    "fs-nextra": "^0.4.7",
+    "@discordjs/builders": "^0.6.0",
+    "@discordjs/rest": "*",
+    "@discordjs/voice": "^0.6.0",
+    "bufferutil": "^4.0.3",
+    "canvas": "^2.8.0",
+    "common-tags": "^1.8.0",
+    "discord-api-types": "^0.22.0",
+    "discord.js": "^13.1.0",
+    "fake-tag": "^3.0.0",
+    "form-data": "^4.0.0",
     "he": "^1.2.0",
-    "intl-messageformat": "^8.3.11",
-    "ioredis": "^4.16.3",
-    "klasa": "dirigeants/klasa#v1.0.0-alpha",
-    "mongodb": "^3.5.5",
-    "mustache": "^4.0.1",
-    "node-fetch": "^2.6.1",
-    "sharp": "^0.25.2",
-    "squares-rng": "^1.0.1"
+    "intl-messageformat": "^9.9.1",
+    "node-fetch": "^2.6.2",
+    "sharp": "^0.29.1",
+    "squares-rng": "^1.0.1",
+    "utf-8-validate": "^5.0.5",
+    "zlib-sync": "^0.1.7"
   }
 }

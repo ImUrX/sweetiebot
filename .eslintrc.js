@@ -1,9 +1,17 @@
 module.exports = {
-    parser: "babel-eslint",
-    globals: {
-        BigInt: true
+    parser: "@babel/eslint-parser",
+    plugins: ["@babel"],
+    env: {
+        node: true,
+        es2021: true
     },
-    extends: "klasa",
+    parserOptions: {
+        requireConfigFile: false,
+        babelOptions: {
+            presets: [["@babel/preset-env", { shippedProposals: true }]]
+        }
+    },
+    extends: "eslint:recommended",
     rules: {
         quotes: [
             "error",
@@ -12,12 +20,6 @@ module.exports = {
         semi: [
             "error",
             "always"
-        ],
-        complexity: [
-            "off"
-        ],
-        "keyword-spacing": [
-            "off"
         ]
     }
 };
