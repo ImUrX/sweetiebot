@@ -1,18 +1,14 @@
-const { Client } = require("discord.js");
-const { REST } = require("@discordjs/rest");
-const { Routes } = require("discord-api-types/v9");
-const Store = require("./base/Store");
-
-const Command = require("./Command");
+import { Client, ClientOptions } from "discord.js";
+import { REST } from "@discordjs/rest";
+import { Routes } from "discord-api-types/v9";
+import Store from "./base/Store";
+import Command from"./Command";
 
 module.exports = class SweetieClient extends Client {
-    /**
-     * @type {Store<Command>}
-     */
-    #commands = new Store(this, "./commands/", Command, true);
+    #commands: Store<Command> = new Store(this, "./commands/", true);
     #rest = new REST({ version: "9" });
 
-    constructor(options) {
+    constructor(options: ClientOptions) {
         super(options);
 
         this.on("interactionCreate", async interaction => {
@@ -29,11 +25,7 @@ module.exports = class SweetieClient extends Client {
         });
     }
 
-    /**
-     * @param {string} token 
-     * @param {string} applicationId 
-     */
-    async login(token, applicationId) {
+    async login(token: string, applicationId = "") {
         await this.#commands.init();
         await this.#rest
             .setToken(token)
@@ -42,6 +34,6 @@ module.exports = class SweetieClient extends Client {
                 { body: this.#commands.collection.map(command => command.properties)}
             );
 
-        await super.login(token);
+        return await super.login(token);
     }
 };

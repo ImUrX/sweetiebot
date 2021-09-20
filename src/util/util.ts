@@ -1,15 +1,12 @@
-const fetch = require("node-fetch");
-const sharp = require("sharp");
-const he = require("he");
-const FormData = require("form-data");
-const { kawaii, gist } = require("../../auth.json");
-
-class Util {
+import fetch from "node-fetch";
+import sharp from "sharp";
+import he from "he";
+import FormData from "form-data";
+import { kawaii, gist } from "../../auth.json";
 	/**
 	 * A Map with magic numbers of supported images for sharp
-	 * @type {Map<string,string>}
 	 */
-	static magic = new Map(
+	export const magic = new Map(
 		[
 			["ffd8ffe0", "jpeg"],
 			["ffd8ffdb", "jpeg"],
@@ -25,37 +22,28 @@ class Util {
 	/**
 	 * An array with sad emojis (˃w˂)
 	 */
-	static sadEmojis = [
+	export const sadEmojis = [
 		":c", ":/", ";-;", "T-T", "（´＿｀）", ":<",
 		"（; ;）", "((´д｀))", "sad emoji", "¯\\_(ツ)_/¯",
 		"\\:", "ɔ:", "(╯︵╰,)", ">:", ":p", "q:",
 		"iįomɘ bɒƨ", "(im out of ideas)", ":(", "😖"
-	]
-
-	constructor() {
-		throw "This is an static class :P";
-	}
+	];
 
 	/**
 	 * gives you a sad emoji
-	 * @returns {string}
 	 */
-	static randomSadEmoji() {
-		return this.sadEmojis[
-			Math.floor(Math.random() * this.sadEmojis.length)
+	export function randomSadEmoji(): string {
+		return sadEmojis[
+			Math.floor(Math.random() * sadEmojis.length)
 		];
 	}
 
 	/**
 	 * Makes your temporal url image or buffer to a kawaii URL
-	 * @param {string|Buffer} img temporal url that returns an image or buffer
-	 * @param {boolean=} notGif Don't upload as a gif if it is one (default false)
-	 * @returns {Promise<string>}
-	 * @static
 	 */
-	static async getKawaiiLink(img, notGif = false) {
+	export async function getKawaiiLink(img: string | Buffer, notGif = false) {
 		const form = new FormData();
-		form.append("uploadFile", await Util.getBuffer(img, notGif), { filename: "test.png" });
+		form.append("uploadFile", await getBuffer(img, notGif), { filename: "test.png" });
 
 		const data = await fetch("https://kawaii.sh/api/files/upload", {
 			method: "POST", body: form,
@@ -71,23 +59,17 @@ class Util {
 
 	/**
 	 * Gives the filename from a kawaii image
-	 * @param {string} url The url of the image
-	 * @returns {string}
 	 */
-	static grabIdFromKawaii(url) {
+	export function grabIdFromKawaii(url: string) {
 		return url.substring(20);
 	}
 
 	/**
 	 * Converts your URL/Image to a buffer
-	 * @param {string|Buffer} img Link to the image or maybe buffer
-	 * @param {boolean=} notGif Conver to normal image instead of animated
-	 * @returns {Promise<Buffer>}
-	 * @static
 	 */
-	static async getBuffer(img, notGif = false) {
+	export async function getBuffer(img: string | Buffer, notGif = false) {
 		let buffer = Buffer.isBuffer(img) ? img : await fetch(img).then(res => res.buffer());
-		const type = Util.getImageType(buffer);
+		const type = getImageType(buffer);
 
 		if(!type) throw "This isn't an image";
 		if(type === "gif" && notGif) buffer = await sharp(buffer).toBuffer();
@@ -96,11 +78,8 @@ class Util {
 
 	/**
 	 * Uploads the text to GitHub Gists and returns the response
-	 * @param {string} content The content of the gist
-	 * @returns {Promise<Object>}
-	 * @static
 	 */
-	static async uploadGist(content) {
+	export async function uploadGist(content) {
 		return fetch("https://api.github.com/gists", {
 			method: "POST",
 			body: JSON.stringify({ files: {
@@ -115,13 +94,10 @@ class Util {
 
 	/**
 	 * Tells you the type of image it is
-	 * @param {Buffer} buffer Image
-	 * @returns {string|null}
-	 * @static
 	 */
-	static getImageType(buffer) {
+	export function getImageType(buffer: Buffer) {
 		if(Buffer.isBuffer(buffer)) {
-			const type = Util.magic.get(buffer.toString("hex", 0, 4));
+			const type = magic.get(buffer.toString("hex", 0, 4));
 			return type || null;
 		}
 		return null;
@@ -129,11 +105,8 @@ class Util {
 
 	/**
 	 * Converts Simple HTML to Markdown
-	 * @param {string} html The HTML for conversion
-	 * @returns {string}
-	 * @static
 	 */
-	static convertHtmlToMd(html) {
+	export function convertHtmlToMd(html: string) {
 		return he.decode(html
 			.replace(/<br>(\\n)?/g, "\n")
 			.replace(/<\/?(em|i)>/g, "*")
@@ -144,40 +117,29 @@ class Util {
 
 	/**
 	 * Replaces Markdown links for their normal text
-	 * @param {string} md The markdown string
-	 * @returns {string}
 	 */
-	static removeMdLinks(md) {
+	export function removeMdLinks(md: string) {
 		return md.replace(/\[(.*?)\]\(.*?\)/g, "$1");
 	}
 
 	/**
 	 * Shortens the text to the specified limit
-	 * @param {string} text The text to shortify
-	 * @param {number=} limit The lenght limit (Unlimited if it's 0)
-	 * @returns {string}
-	 * @static
 	 */
-	static shortify(text, limit = 0) {
+	export function shortify(text: string, limit = 0) {
 		if(limit && text.length <= limit) return text;
 
-		let paragraph = text.match(/((?:.|\n)+?\.)( +)?\n/g);
-		paragraph = paragraph ? paragraph[0] : text;
-		return limit ? `${paragraph.substring(0, limit - 4)}...` : paragraph;
+		const paragraph = text.match(/((?:.|\n)+?\.)( +)?\n/g);
+		const res = paragraph ? paragraph[0] : text;
+		return limit ? `${res.substring(0, limit - 4)}...` : res;
 	}
 
 	/**
 	 * Returns a random RGB array
-	 * @returns {number[]}
-	 * @static
 	 */
-	static randomColor() {
+	export function randomColor(): [number, number, number] {
 		const rgb = [];
 		for(let i = 0; i < 3; i++) {
 			rgb.push(Math.floor(Math.random() * 256));
 		}
 		return rgb;
 	}
-}
-
-module.exports = Util;

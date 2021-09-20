@@ -1,6 +1,6 @@
 const { SlashCommandBuilder } = require("@discordjs/builders");
 // eslint-disable-next-line no-unused-vars
-const { CommandInteraction, MessageEmbed } = require("discord.js");
+const { CommandInteraction, MessageEmbed, MessageActionRow, MessageButton } = require("discord.js");
 const fetch = require("node-fetch");
 const { stripIndent } = require("common-tags");
 const util = require("../../util/util.js");
@@ -42,7 +42,7 @@ module.exports = class extends Command {
             return interaction.reply({ content: `It seems someone in here did something wrong ${util.randomSadEmoji()} (code ${json.header.status})`, ephemeral: true });
         }
         await interaction.deferReply();
-        return interaction.editReply("dont know");
+        
     }
     
 };

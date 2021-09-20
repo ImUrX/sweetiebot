@@ -109,5 +109,4 @@ auth.json
 assets/fonts/
 assets/schemas/
 
-# klasa stuff
-bwd/
+bin/
