@@ -1,15 +1,21 @@
+/* eslint-disable no-unused-vars */
 const { SlashCommandBuilder } = require("@discordjs/builders");
-const { Interaction, Base } = require("discord.js");
+const { Interaction } = require("discord.js");
+const Piece = require("./base/Piece.js");
 
-module.exports = class Command extends Base {
+/**
+ * @abstract
+ */
+module.exports = class Command extends Piece {
     /**
      * @type {SlashCommandBuilder}
      */
     properties;
     
     /**
-     * @param {Interaction} interaction 
+     * @abstract
+     * @param {Interaction} interaction
+     * @returns {void}
      */
-    async run(interaction);
-    async init();
-}
+    async run(interaction) { }
+};

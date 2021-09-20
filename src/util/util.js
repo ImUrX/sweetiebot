@@ -2,8 +2,7 @@ const fetch = require("node-fetch");
 const sharp = require("sharp");
 const he = require("he");
 const FormData = require("form-data");
-const { kawaii, gist } = require("../../../auth.json");
-const { Duration } = require("klasa");
+const { kawaii, gist } = require("../../auth.json");
 
 class Util {
 	/**
@@ -30,7 +29,7 @@ class Util {
 		":c", ":/", ";-;", "T-T", "（´＿｀）", ":<",
 		"（; ;）", "((´д｀))", "sad emoji", "¯\\_(ツ)_/¯",
 		"\\:", "ɔ:", "(╯︵╰,)", ">:", ":p", "q:",
-		"iįomɘ bɒƨ", "im out of ideas", ":(", "😖"
+		"iįomɘ bɒƨ", "(im out of ideas)", ":(", "😖"
 	]
 
 	constructor() {
@@ -179,30 +178,6 @@ class Util {
 		}
 		return rgb;
 	}
-
-	static readableTime(time) {
-	// But unreadable code
-		let { offset } = new Duration(time.toString());
-		offset /= 1000;
-		const years = Math.floor(offset / 3.154e+7);
-		offset %= 3.154e+7;
-		const months = Math.floor(offset / 2.628e+6);
-		offset %= 2.628e+6;
-		const days = Math.floor(offset / 86400);
-		offset %= 86400;
-		const hours = Math.floor(offset / 3600);
-		offset %= 3600;
-		const minutes = Math.floor(offset / 60);
-		offset %= 60;
-
-		return`${years > 0 ? `${years}y` : ""}${
-			months > 0 ? `${months}mo` : ""}${
-			days > 0 ? `${days}d ` : ""}${
-			hours > 0 ? `${hours}h` : ""}${
-			minutes > 0 ? `${minutes}m` : ""}${
-			offset > 0 ? `${offset}s` : ""}`;
-	}
-
 }
 
 module.exports = Util;
