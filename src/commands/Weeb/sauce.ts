@@ -26,7 +26,8 @@ export default class SauceCommand extends Command {
         const nsfw = interaction.channel instanceof BaseGuildTextChannel && interaction.channel.nsfw;
         const json = await fetch(stripIndent`
         https://saucenao.com/search.php?db=999&output_type=2&numres=5${nsfw ? "" : "&hide=3"}&api_key=${saucenao}&url=${encodeURIComponent(url)}`
-        ).then(res => res.json());
+        ).then(res => res.json() as Promise<SauceNAOData<never>>);
+        (json as SauceNAOData<1>).results[0].data.
 
         if(json.header.status > 0 && !json.results.length) {
             return interaction.reply({ content: `It seems SauceNAO is having some problems (code ${json.header.status})`, ephemeral: true });
@@ -43,7 +44,7 @@ export default class SauceCommand extends Command {
     }
 }
 
-export type SauceNAOData = {
+export type SauceNAOData<T extends keyof DataType | never> = {
     header: {
         status: number
     },
@@ -57,7 +58,7 @@ export type SauceNAOData = {
         },
         data: {
             ext_urls?: string[],
-        }
+        } & (T extends keyof DataType ? DataType[T] : Record<string, never>)
     }[]
 }
 
@@ -73,7 +74,8 @@ export type DataType = {
     42: SauceFurryNetworkData,
     35: SaucePawooData,
     8: SauceNicoNicoData,
-    27: SauceSankakuData
+    27: SauceSankakuData,
+    "-1": {} & TitledData
 }
 
 interface TitledData {
