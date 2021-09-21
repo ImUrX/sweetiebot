@@ -27,7 +27,6 @@ export default class SauceCommand extends Command {
         const json = await fetch(stripIndent`
         https://saucenao.com/search.php?db=999&output_type=2&numres=5${nsfw ? "" : "&hide=3"}&api_key=${saucenao}&url=${encodeURIComponent(url)}`
         ).then(res => res.json() as Promise<SauceNAOData<never>>);
-        (json as SauceNAOData<1>).results[0].data.
 
         if(json.header.status > 0 && !json.results.length) {
             return interaction.reply({ content: `It seems SauceNAO is having some problems (code ${json.header.status})`, ephemeral: true });
@@ -58,7 +57,7 @@ export type SauceNAOData<T extends keyof DataType | never> = {
         },
         data: {
             ext_urls?: string[],
-        } & (T extends keyof DataType ? DataType[T] : Record<string, never>)
+        } & (T extends keyof DataType ? DataType[T] : Record<string, unknown>)
     }[]
 }
 
@@ -74,8 +73,7 @@ export type DataType = {
     42: SauceFurryNetworkData,
     35: SaucePawooData,
     8: SauceNicoNicoData,
-    27: SauceSankakuData,
-    "-1": {} & TitledData
+    27: SauceSankakuData
 }
 
 interface TitledData {
