@@ -206,7 +206,6 @@ export default class VNDB extends EventEmitter {
 	 * Gets you the current stats of VNDB
 	 */
 	dbstats(): Promise<VNDBStats> {
-		this.get(VNDBDataType.VN, ["basic", "details"], "lol").then(res => res);
 		return new Promise((res, rej) => {
 			this.connection.write("dbstats\x04");
 			this.once("data", str => {

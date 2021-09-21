@@ -1,5 +1,5 @@
 import { SlashCommandBuilder } from "@discordjs/builders";
-import { CommandInteraction, MessageEmbed, MessageActionRow, MessageButton, BaseGuildTextChannel } from "discord.js";
+import { CommandInteraction, MessageEmbed, MessageActionRow, MessageButton, BaseGuildTextChannel, BaseCommandInteraction } from "discord.js";
 import fetch from "node-fetch";
 import { stripIndent } from "common-tags";
 import { randomSadEmoji } from "../../util/util.js";
@@ -23,10 +23,15 @@ export default class SauceCommand extends Command {
         } catch(e) {
             return interaction.reply({ content: `The URL isn't valid ${randomSadEmoji()}`, ephemeral: true });
         }
+        
+        await SauceCommand.replyTo(interaction, url);
+    }
+
+    static async replyTo(interaction: BaseCommandInteraction, url: string): Promise<void> {
         const nsfw = interaction.channel instanceof BaseGuildTextChannel && interaction.channel.nsfw;
         const json = await fetch(stripIndent`
         https://saucenao.com/search.php?db=999&output_type=2&numres=5${nsfw ? "" : "&hide=3"}&api_key=${saucenao}&url=${encodeURIComponent(url)}`
-        ).then(res => res.json() as Promise<SauceNAOData<never>>);
+        ).then(res => res.json() as Promise<SauceNAOData<unknown>>);
 
         if(json.header.status > 0 && !json.results.length) {
             return interaction.reply({ content: `It seems SauceNAO is having some problems (code ${json.header.status})`, ephemeral: true });
@@ -38,12 +43,10 @@ export default class SauceCommand extends Command {
             return interaction.reply({ content: `It seems someone in here did something wrong ${randomSadEmoji()} (code ${json.header.status})`, ephemeral: true });
         }
         await interaction.deferReply();
-
-        
     }
 }
 
-export type SauceNAOData<T extends keyof DataType | never> = {
+export type SauceNAOData<T extends keyof DataType | unknown> = {
     header: {
         status: number
     },
