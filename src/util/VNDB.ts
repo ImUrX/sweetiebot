@@ -226,8 +226,8 @@ export default class VNDB extends EventEmitter {
 	 */
 get<
 	K extends keyof VNDBFlag,
-	V extends VNDBFlag[K][]
->(type: VNDBDataType & K, flags: V, filter: string, options: VNDBGetOptions = {}): Promise<unknown> {
+	V extends keyof VNDBFlag[K]
+>(type: VNDBDataType & K, flags: V[], filter: string, options: VNDBGetOptions = {}): Promise<unknown> {
 	return new Promise((res, rej) => {
 		this.connection.write(`get ${type} ${flags.join(",")} ${filter}${options ? ` ${JSON.stringify(options)}` : ""}\x04`);
 		this.once("data", str => {
