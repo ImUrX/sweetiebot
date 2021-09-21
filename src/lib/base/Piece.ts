@@ -16,5 +16,7 @@ export default abstract class Piece extends Base {
         this.category = category;
     }
 
-    abstract init(): Promise<unknown>;
+    async init(): Promise<unknown> {
+        return undefined;
+    }
 }
