@@ -1,10 +1,10 @@
 import { Client, ClientOptions } from "discord.js";
 import { REST } from "@discordjs/rest";
 import { Routes } from "discord-api-types/v9";
-import Store from "./base/Store";
-import Command from"./Command";
+import Store from "./base/Store.js";
+import Command from"./Command.js";
 
-module.exports = class SweetieClient extends Client {
+export default class SweetieClient extends Client {
     #commands: Store<Command> = new Store(this, "./commands/", true);
     #rest = new REST({ version: "9" });
 
@@ -25,7 +25,7 @@ module.exports = class SweetieClient extends Client {
         });
     }
 
-    async login(token: string, applicationId = "") {
+    async login(token: string, applicationId = ""): Promise<string> {
         await this.#commands.init();
         await this.#rest
             .setToken(token)
@@ -36,4 +36,4 @@ module.exports = class SweetieClient extends Client {
 
         return await super.login(token);
     }
-};
+}

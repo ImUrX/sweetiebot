@@ -2,7 +2,7 @@ import fetch from "node-fetch";
 import sharp from "sharp";
 import he from "he";
 import FormData from "form-data";
-import { kawaii, gist } from "../../auth.json";
+import auth from "../../auth.json";
 /**
  * A Map with magic numbers of supported images for sharp
  */
@@ -51,7 +51,7 @@ export async function getKawaiiLink(img: string | Buffer, notGif = false): Promi
 
 	const data = await fetch("https://kawaii.sh/api/files/upload", {
 		method: "POST", body: form,
-		headers: form.getHeaders({ token: kawaii })
+		headers: form.getHeaders({ token: auth.kawaii })
 	}).then(res => res.json() as Promise<KawaiiUploadData>);
 
 	if(data.url) {
@@ -105,7 +105,7 @@ export async function uploadGist(content: string): Promise<CreateGistData>  {
 			"plain.txt": { content }
 		} }),
 		headers: {
-			Authorization: `token ${gist}`,
+			Authorization: `token ${auth.gist}`,
 			"Content-Type": "application/json"
 		}
 	}).then(res => res.json() as Promise<CreateGistData>);

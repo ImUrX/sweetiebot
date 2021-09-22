@@ -3,12 +3,15 @@
       "outDir": "./bin",
       "allowJs": true,
       "target": "es2020",
-      "module": "CommonJS",
+      "module": "ESNext",
       "strict": true,
       "sourceMap": true,
       "esModuleInterop": true,
       "moduleResolution": "node",
-      "resolveJsonModule": true
+      "resolveJsonModule": true,
+      "lib": [
+        "ES2020"
+      ]
     },
-    "include": ["./src/**/*"]
+    "include": ["src/**/*"]
   }

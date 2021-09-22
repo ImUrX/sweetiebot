@@ -2,13 +2,14 @@
   "name": "sweetiebot",
   "version": "2.0.0",
   "description": "A discord bot made for your weird needs",
-  "main": "src/index.js",
+  "main": "bin/src/index.js",
   "repository": "https://github.com/ImUrX/sweetiebot.git",
   "author": "ImUrX <urielfontan2002@gmail.com>",
   "license": "MIT",
   "engines": {
     "node": ">=16.6"
   },
+  "type": "module",
   "scripts": {
     "genSchemas": "npx get-graphql-schema \"https://graphql.anilist.co/\" -j | tee assets/schemas/anilist.json",
     "getFonts": "chmod +x ./getFonts.sh && ./getFonts.sh",

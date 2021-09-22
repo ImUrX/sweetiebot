@@ -1,10 +1,11 @@
 import { SlashCommandBuilder } from "@discordjs/builders";
-import { CommandInteraction, MessageEmbed, MessageActionRow, MessageButton, BaseGuildTextChannel, BaseCommandInteraction } from "discord.js";
+import { CommandInteraction, BaseCommandInteraction, MessageEmbed, MessageAttachment } from "discord.js";
 import fetch from "node-fetch";
 import { stripIndent } from "common-tags";
 import { randomSadEmoji } from "../../util/util.js";
-import Command from "../../lib/Command";
-import { saucenao } from "../../../auth.json";
+import Command from "../../lib/Command.js";
+import auth from "../../../auth.json";
+import EmbedList from "../../util/EmbedList.js";
 
 export default class SauceCommand extends Command {
     properties = new SlashCommandBuilder()
@@ -28,9 +29,9 @@ export default class SauceCommand extends Command {
     }
 
     static async replyTo(interaction: BaseCommandInteraction, url: string): Promise<void> {
-        const nsfw = interaction.channel instanceof BaseGuildTextChannel && interaction.channel.nsfw;
+        const nsfw = interaction.channel && "nsfw" in interaction.channel && interaction.channel.nsfw;
         const json = await fetch(stripIndent`
-        https://saucenao.com/search.php?db=999&output_type=2&numres=5${nsfw ? "" : "&hide=3"}&api_key=${saucenao}&url=${encodeURIComponent(url)}`
+        https://saucenao.com/search.php?db=999&output_type=2&numres=5${nsfw ? "" : "&hide=3"}&api_key=${auth.saucenao}&url=${encodeURIComponent(url)}`
         ).then(res => res.json() as Promise<SauceNAOData<unknown>>);
 
         if(json.header.status > 0 && !json.results.length) {
@@ -43,6 +44,22 @@ export default class SauceCommand extends Command {
             return interaction.reply({ content: `It seems someone in here did something wrong ${randomSadEmoji()} (code ${json.header.status})`, ephemeral: true });
         }
         await interaction.deferReply();
+        const embedList = new EmbedList({ time: 30000 });
+        for(let i = 0; i < 3; i++) {
+            embedList.add(
+                new MessageEmbed()
+                    .setTitle("this is an embed")
+                    .setDescription(i.toString())
+            );
+        }
+        await embedList.send(interaction);
+    }
+
+    static async createEmbed(res: SauceNAOData<unknown>, index: number): Promise<{
+        embed: MessageEmbed,
+        attachment: MessageAttachment
+    }> {
+        res.results[index]
     }
 }
 
@@ -54,7 +71,7 @@ export type SauceNAOData<T extends keyof DataType | unknown> = {
         header: {
             similarity: string,
             thumbnail: string,
-            index_id: number,
+            index_id: T,
             index_name: string,
             dupes: number
         },
