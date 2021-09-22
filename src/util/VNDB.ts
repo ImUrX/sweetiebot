@@ -1,6 +1,108 @@
 import EventEmitter from "events";
 import tls from "tls";
 
+export default class VNDB extends EventEmitter {
+	static api = {
+		host: "api.vndb.org",
+		port: 19535
+	};
+	connection = tls.connect(VNDB.api);
+	client: string;
+	logged: boolean;
+
+	/**
+	 * A class that makes VNDB API kind of simpler
+	 */
+	constructor(clientName: string) {
+		super();
+
+		this.connection.setEncoding("utf8");
+		this.connection.setKeepAlive(true);
+
+	
+		this.client = clientName;
+		this.logged = false;
+
+		let currentData = "";
+		this.connection.on("data", res => {
+			currentData += res;
+			if(res.endsWith("\x04")) {
+				this.emit("data", currentData.slice());
+				currentData = "";
+			}
+		});
+	}
+
+	/**
+	 * For logging to VNDB's API
+	 */
+	login(log: VNDBAuth = {}): Promise<void> {
+		return new Promise((res, rej) => {
+			log = {
+				...log,
+				protocol: 1,
+				client: this.client,
+				clientver: 0.01,
+			};
+			this.connection.write(`login ${JSON.stringify(log)}\x04`);
+			this.once("data", str => {
+				if(str.includes("ok\x04")) {
+					this.logged = true;
+					this.emit("login");
+					res();
+				} else{
+					rej(str);
+				}
+			});
+		});
+	}
+
+	/**
+	 * Gets you the current stats of VNDB
+	 */
+	dbstats(): Promise<VNDBStats> {
+		return new Promise((res, rej) => {
+			this.connection.write("dbstats\x04");
+			this.once("data", str => {
+				if(str.includes("dbstats")) {
+					const data = JSON.parse(str.replace("dbstats", "").replace("\x04", ""));
+					this.emit("dbstats", data);
+					res(data);
+				} else{
+					rej(str);
+				}
+			});
+		});
+	}
+
+	/**
+	 * Gets you info from the VNDB
+	 */
+	get<
+		K extends keyof VNDBFlag,
+		V extends keyof VNDBFlag[K]
+	>(type: VNDBDataType & K, flags: V[], filter: string, options: VNDBGetOptions = {}): Promise<IntersectOf<VNDBFlag[K][V] & IDData>> {
+	return new Promise((res, rej) => {
+		this.connection.write(`get ${type} ${flags.join(",")} ${filter}${options ? ` ${JSON.stringify(options)}` : ""}\x04`);
+		this.once("data", str => {
+			if(str.includes("results")) {
+				const data = JSON.parse(str.replace("results", "").replace("\x04", ""));
+				this.emit("get", data, type, flags, filter, options);
+				res(data);
+			} else{
+				rej(str);
+			}
+		});
+	});
+}
+
+	end(): void {
+		this.connection.end();
+		this.logged = false;
+	}
+
+}
+
 export type VNDBAuth = {
 	user?: string;
 	password?: string;
@@ -44,18 +146,22 @@ export enum VNDBDataType {
 }
 
 type VNDBFlag = {
-	[VNDBDataType.VN]: "basic" | "details" | "anime" | "relations" | "tags" | "stats" | "screens" | "staff"
-	[VNDBDataType.RELEASE]: "basic" | "details" | "vn"
+	[VNDBDataType.VN]: VNData
+	/*[VNDBDataType.RELEASE]: "basic" | "details" | "vn"
 	[VNDBDataType.PRODUCER]: "basic" | "details" | "relations"
 	[VNDBDataType.CHARACTER]: "basic" | "details" | "meas" | "vns" | "voiced" | "instances"
 	[VNDBDataType.STAFF]: "basic" | "details" | "aliases" | "vns" | "voiced"
 	[VNDBDataType.QUOTE]: "basic"
 	[VNDBDataType.USER]: "basic"
 	[VNDBDataType.ULIST_LABELS]: "basic"
-	[VNDBDataType.ULIST]: "basic" | "labels"
+	[VNDBDataType.ULIST]: "basic" | "labels"*/
 }
 
-/*
+type IntersectOf<U extends any> =
+    (U extends unknown ? (k: U) => void : never) extends ((k: infer I) => void)
+    ? I
+    : never
+
 type VNData = {
 	basic: VNBasicData,
 	details: VNDetailsData,
@@ -65,7 +171,7 @@ type VNData = {
 	stats: VNStatsData,
 	screens: VNScreenshotData,
 	staff: VNStaffData	
-} 
+} & IDData
 
 interface IDData {
 	id: number
@@ -144,106 +250,4 @@ interface VNStaffData {
 		role: string,
 		note?: string
 	}[]
-}*/
-
-export default class VNDB extends EventEmitter {
-	static api = {
-		host: "api.vndb.org",
-		port: 19535
-	};
-	connection = tls.connect(VNDB.api);
-	client: string;
-	logged: boolean;
-
-	/**
-	 * A class that makes VNDB API kind of simpler
-	 */
-	constructor(clientName: string) {
-		super();
-
-		this.connection.setEncoding("utf8");
-		this.connection.setKeepAlive(true);
-
-	
-		this.client = clientName;
-		this.logged = false;
-
-		let currentData = "";
-		this.connection.on("data", res => {
-			currentData += res;
-			if(res.endsWith("\x04")) {
-				this.emit("data", currentData.slice());
-				currentData = "";
-			}
-		});
-	}
-
-	/**
-	 * For logging to VNDB's API
-	 */
-	login(log: VNDBAuth = {}): Promise<void> {
-		return new Promise((res, rej) => {
-			log = {
-				...log,
-				protocol: 1,
-				client: this.client,
-				clientver: 0.01,
-			};
-			this.connection.write(`login ${JSON.stringify(log)}\x04`);
-			this.once("data", str => {
-				if(str.includes("ok\x04")) {
-					this.logged = true;
-					this.emit("login");
-					res();
-				} else{
-					rej(str);
-				}
-			});
-		});
-	}
-
-	/**
-	 * Gets you the current stats of VNDB
-	 */
-	dbstats(): Promise<VNDBStats> {
-		return new Promise((res, rej) => {
-			this.connection.write("dbstats\x04");
-			this.once("data", str => {
-				if(str.includes("dbstats")) {
-					const data = JSON.parse(str.replace("dbstats", "").replace("\x04", ""));
-					this.emit("dbstats", data);
-					res(data);
-				} else{
-					rej(str);
-				}
-			});
-		});
-	}
-
-	/**
-	 * Gets you info from the VNDB
-	 */
-get<
-	K extends keyof VNDBFlag,
-	V extends keyof VNDBFlag[K]
->(type: VNDBDataType & K, flags: V[], filter: string, options: VNDBGetOptions = {}): Promise<unknown> {
-	return new Promise((res, rej) => {
-		this.connection.write(`get ${type} ${flags.join(",")} ${filter}${options ? ` ${JSON.stringify(options)}` : ""}\x04`);
-		this.once("data", str => {
-			if(str.includes("results")) {
-				const data = JSON.parse(str.replace("results", "").replace("\x04", ""));
-				this.emit("get", data, type, flags, filter, options);
-				res(data);
-			} else{
-				rej(str);
-			}
-		});
-	});
-}
-
-	end(): void {
-		this.connection.end();
-		this.logged = false;
-	}
-
 }
