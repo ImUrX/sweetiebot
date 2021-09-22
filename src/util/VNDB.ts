@@ -1,5 +1,6 @@
 import EventEmitter from "events";
 import tls from "tls";
+import { Union } from "ts-toolbelt";
 
 export default class VNDB extends EventEmitter {
 	static api = {
@@ -81,7 +82,7 @@ export default class VNDB extends EventEmitter {
 	get<
 		K extends keyof VNDBFlag,
 		V extends keyof VNDBFlag[K]
-	>(type: VNDBDataType & K, flags: V[], filter: string, options: VNDBGetOptions = {}): Promise<IntersectOf<VNDBFlag[K][V] & IDData>> {
+	>(type: VNDBType & K, flags: V[], filter: string, options: VNDBGetOptions = {}): Promise<Union.IntersectOf<VNDBFlag[K][V]>> {
 	return new Promise((res, rej) => {
 		this.connection.write(`get ${type} ${flags.join(",")} ${filter}${options ? ` ${JSON.stringify(options)}` : ""}\x04`);
 		this.once("data", str => {
@@ -130,7 +131,7 @@ export type VNDBGetOptions = {
 	reverse?: boolean
 }
 
-export enum VNDBDataType {
+export enum VNDBType {
 	VN = "vn",
 	RELEASE = "release",
 	PRODUCER = "producer",
@@ -145,24 +146,27 @@ export enum VNDBDataType {
 	ULIST = "ulist"
 }
 
-type VNDBFlag = {
-	[VNDBDataType.VN]: VNData
-	/*[VNDBDataType.RELEASE]: "basic" | "details" | "vn"
-	[VNDBDataType.PRODUCER]: "basic" | "details" | "relations"
-	[VNDBDataType.CHARACTER]: "basic" | "details" | "meas" | "vns" | "voiced" | "instances"
-	[VNDBDataType.STAFF]: "basic" | "details" | "aliases" | "vns" | "voiced"
-	[VNDBDataType.QUOTE]: "basic"
-	[VNDBDataType.USER]: "basic"
-	[VNDBDataType.ULIST_LABELS]: "basic"
-	[VNDBDataType.ULIST]: "basic" | "labels"*/
+export type VNDBFlag = {
+	[VNDBType.VN]: IDData<VNData>
+	/*[VNDBType.RELEASE]: "basic" | "details" | "vn"
+	[VNDBType.PRODUCER]: "basic" | "details" | "relations"
+	[VNDBType.CHARACTER]: "basic" | "details" | "meas" | "vns" | "voiced" | "instances"
+	[VNDBType.STAFF]: "basic" | "details" | "aliases" | "vns" | "voiced"
+	[VNDBType.QUOTE]: "basic"
+	[VNDBType.USER]: "basic"
+	[VNDBType.ULIST_LABELS]: "basic"
+	[VNDBType.ULIST]: "basic" | "labels"*/
 }
 
-type IntersectOf<U extends any> =
-    (U extends unknown ? (k: U) => void : never) extends ((k: infer I) => void)
-    ? I
-    : never
+type IDData<T> = {
+	[P in keyof T]: T[P] & IdentifiedData
+}
 
-type VNData = {
+interface IdentifiedData {
+	id: number
+}
+
+export type VNData = {
 	basic: VNBasicData,
 	details: VNDetailsData,
 	anime: VNAnimeData,
@@ -171,10 +175,6 @@ type VNData = {
 	stats: VNStatsData,
 	screens: VNScreenshotData,
 	staff: VNStaffData	
-} & IDData
-
-interface IDData {
-	id: number
 }
 
 interface VNBasicData {
@@ -192,7 +192,7 @@ type ImageFlagData = {
 	violence_avg: number
 }
 
-interface VNDetailsData {
+export interface VNDetailsData {
 	aliases?: string,
 	length?: number,
 	description?: string,
@@ -205,13 +205,13 @@ interface VNDetailsData {
 }
 
 
-interface VNAnimeData {
+export interface VNAnimeData {
 	anime: {
 		id: number
 	}[]
 }
 
-interface VNRelationData {
+export interface VNRelationData {
 	relations: {
 		id: number,
 		relation: string,
@@ -221,17 +221,17 @@ interface VNRelationData {
 	}[],
 }
 
-interface VNTagData {
+export interface VNTagData {
 	tags: [number, number, number][]
 }
 
-interface VNStatsData {
+export interface VNStatsData {
 	popularity: number,
 	rating: number,
 	votecount: number
 }
 
-interface VNScreenshotData {
+export interface VNScreenshotData {
 	screens: {
 		image: string,
 		rid: number,
@@ -241,7 +241,7 @@ interface VNScreenshotData {
 	}[]
 }
 
-interface VNStaffData {
+export interface VNStaffData {
 	staff: {
 		sid: number,
 		aid: number,

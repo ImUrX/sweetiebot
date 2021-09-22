@@ -32,8 +32,9 @@ export default class SauceCommand extends Command {
         const nsfw = interaction.channel && "nsfw" in interaction.channel && interaction.channel.nsfw;
         const json = await fetch(stripIndent`
         https://saucenao.com/search.php?db=999&output_type=2&numres=5${nsfw ? "" : "&hide=3"}&api_key=${auth.saucenao}&url=${encodeURIComponent(url)}`
-        ).then(res => res.json() as Promise<SauceNAOData<unknown>>);
-
+        ).then(res => res.json() as Promise<SauceNAOData>);
+        if(json.results[0].header.index_id === 34) {
+        }
         if(json.header.status > 0 && !json.results.length) {
             return interaction.reply({ content: `It seems SauceNAO is having some problems (code ${json.header.status})`, ephemeral: true });
         }
@@ -55,30 +56,34 @@ export default class SauceCommand extends Command {
         await embedList.send(interaction);
     }
 
-    static async createEmbed(res: SauceNAOData<unknown>, index: number): Promise<{
+    static async createEmbed(res: SauceNAOData, index: number): Promise<{
         embed: MessageEmbed,
         attachment: MessageAttachment
     }> {
-        res.results[index]
+        if(res.results[index].header.index_id === 34) {
+            res.results[index]
+        }
     }
 }
 
-export type SauceNAOData<T extends keyof DataType | unknown> = {
+export type SauceNAOData = {
     header: {
         status: number
     },
-    results: {
-        header: {
-            similarity: string,
-            thumbnail: string,
-            index_id: T,
-            index_name: string,
-            dupes: number
-        },
-        data: {
-            ext_urls?: string[],
-        } & (T extends keyof DataType ? DataType[T] : Record<string, unknown>)
-    }[]
+    results: SauceNAOResult[]
+}
+
+type SauceNAOResult = {
+    header: {
+        similarity: string,
+        thumbnail: string,
+        index_id: keyof DataType,
+        index_name: string,
+        dupes: number
+    },
+    data: {
+        ext_urls?: string[],
+    }
 }
 
 export type DataType = {

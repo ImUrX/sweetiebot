@@ -45,6 +45,7 @@
     "node-fetch": "^3.0.0",
     "sharp": "^0.29.1",
     "squares-rng": "^1.0.1",
+    "ts-toolbelt": "^9.6.0",
     "utf-8-validate": "^5.0.5",
     "zlib-sync": "^0.1.7"
   }
