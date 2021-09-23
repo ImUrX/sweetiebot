@@ -149,9 +149,9 @@ export enum VNDBType {
 export type VNDBFlag = {
 	[VNDBType.VN]: IDData<VNData>
 	[VNDBType.RELEASE]: IDData<ReleaseData>
-	/*[VNDBType.PRODUCER]: "basic" | "details" | "relations"
-	[VNDBType.CHARACTER]: "basic" | "details" | "meas" | "vns" | "voiced" | "instances"
-	[VNDBType.STAFF]: "basic" | "details" | "aliases" | "vns" | "voiced"
+	[VNDBType.PRODUCER]: IDData<ProducerData>
+	[VNDBType.CHARACTER]: IDData<CharacterData>
+	/*[VNDBType.STAFF]: "basic" | "details" | "aliases" | "vns" | "voiced"
 	[VNDBType.QUOTE]: "basic"
 	[VNDBType.USER]: "basic"
 	[VNDBType.ULIST_LABELS]: "basic"
@@ -180,7 +180,24 @@ type VNData = {
 type ReleaseData = {
 	basic: ReleaseBasicData,
 	details: ReleaseDetailsData,
-	vn: ReleaseVNData
+	vn: ReleaseVNData,
+	producers: ReleaseProducersData
+}
+
+type ProducerData = {
+	basic: ProducerBasicData,
+	details: ProducerDetailsData,
+	relations: ProducerRelationData
+}
+
+type CharacterData = {
+	basic: CharacterBasicData,
+	details: CharacterDetailsData,
+	meas: CharacterMeasData,
+	traits: CharacterTraitData,
+	vns: CharacterVNData,
+	voiced: CharacterVoicedData,
+	instances: CharacterInstanceData
 }
 
 export interface VNBasicData {
@@ -258,6 +275,136 @@ export interface VNStaffData {
 	}[]
 }
 
-export interface ReleaseBasicData {}
-export interface ReleaseDetailsData {}
-export interface ReleaseVNData {}
+export interface ReleaseBasicData {
+	title: string,
+	original?: string,
+	released?: string,
+	type: string,
+	patch: boolean,
+	freeware: boolean,
+	doujin: boolean,
+	languages: string[]
+}
+
+export enum ReleaseVoiced {
+	NOT = 1,
+	ONLY_ERO = 2,
+	PARTIALLY = 3,
+	FULLY = 4
+}
+
+export enum ReleaseAnimation {
+	NOT = 1,
+	SIMPLE = 2,
+	SOME = 3,
+	ALL = 4
+}
+
+export interface ReleaseDetailsData {
+	website?: string,
+	notes?: string,
+	minage?: number,
+	gtin?: string,
+	catalog?: string,
+	platforms: string[],
+	media: {
+		medium: string,
+		qty?: number
+	}[],
+	resolution?: string,
+	voiced?: ReleaseVoiced,
+	animation?: [ReleaseAnimation, ReleaseAnimation]
+}
+
+export interface ReleaseVNData {
+	vn: (IdentifiedData & {
+		title: string,
+		original?: string
+	})[]
+}
+
+export interface ReleaseProducersData {
+	producers: (IdentifiedData & {
+		developer: boolean,
+		publisher: boolean,
+		name: string,
+		original?: string,
+		type: string
+	})[]
+}
+
+export interface ProducerBasicData {
+	name: string,
+	original?: string,
+	type: string,
+	language: string,
+}
+
+export interface ProducerDetailsData {
+	links: {
+		homepage?: string,
+		wikidata?: string
+	},
+	aliases?: string,
+	description?: string
+}
+
+export interface ProducerRelationData {
+	relations: (IdentifiedData & {
+		relation: string,
+		name: string,
+		original?: string
+	})[]
+}
+
+export interface CharacterBasicData {
+	name: string,
+	original?: string,
+	gender?: string,
+	spoil_gender?: string,
+	bloodt?: string,
+	birthday: [number?, number?]
+}
+
+export interface CharacterDetailsData {
+	aliases?: string,
+	description?: string,
+	age?: number,
+	image?: string,
+	image_flagging?: ImageFlagData
+}
+
+export interface CharacterMeasData {
+	bust?: number,
+	waist?: number,
+	hip?: number,
+	height?: number,
+	weight?: number,
+	cup_size?: string
+}
+
+export interface CharacterTraitData {
+	traits: [number, number][]
+}
+
+export interface CharacterVNData {
+	vns: [number, number, string][]
+}
+
+export interface CharacterVoicedData {
+	voiced: {
+		id: number,
+		aid: number,
+		vid: number,
+		note: string
+	}[]
+}
+
+export interface CharacterInstanceData {
+	instances: {
+		id: number,
+		spoiler: number,
+		name: string,
+		original: string
+	}[]
+}

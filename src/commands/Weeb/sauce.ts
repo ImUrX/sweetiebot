@@ -29,9 +29,8 @@ export default class SauceCommand extends Command {
     }
 
     static async replyTo(interaction: BaseCommandInteraction, url: string): Promise<void> {
-        const nsfw = interaction.channel && "nsfw" in interaction.channel && interaction.channel.nsfw;
         const json = await fetch(stripIndent`
-        https://saucenao.com/search.php?db=999&output_type=2&numres=5${nsfw ? "" : "&hide=3"}&api_key=${auth.saucenao}&url=${encodeURIComponent(url)}`
+        https://saucenao.com/search.php?db=999&output_type=2&numres=5&api_key=${auth.saucenao}&url=${encodeURIComponent(url)}`
         ).then(res => res.json() as Promise<SauceNAOData<unknown>>);
 
         if(json.header.status > 0 && !json.results.length) {
@@ -143,6 +142,12 @@ export default class SauceCommand extends Command {
                     .addField("Part:", tmp.data.part, true);
                 break;
             }
+            case 12: {
+                const tmp = data as SauceNAOResult<12>;
+                res.setTitle(tmp.data.source)
+                    .setAuthor(tmp.data.creator);
+                break;
+            }
             default:
                 console.error(`Don't know where this SauceNAO index is from: ${JSON.stringify(data)}`);
                 res.setTitle("¿?");
@@ -186,7 +191,8 @@ export type DataType = {
     8: SauceNicoNicoData,
     27: SauceSankakuData
     16: SauceFAKKUData,
-    36: SauceMadokamiData
+    36: SauceMadokamiData,
+    12: SauceYandereData
 }
 
 interface TitledData {
@@ -275,10 +281,23 @@ export type SauceFAKKUData = {
     creator: string
 }
 
-
 export type SauceMadokamiData = {
     mu_id: number,
     source: string,
     part: string,
     type: string
+}
+
+export type SauceYandereData = {
+    /**
+     * A URL sometimes
+     */
+    source: string,
+    characters: string,
+    material: string,
+    creator: string,
+    "anime-pictures_id"?: number,
+    gelbooru_id?: number,
+    yandere_id: number,
+    danbooru_id?: number
 }
