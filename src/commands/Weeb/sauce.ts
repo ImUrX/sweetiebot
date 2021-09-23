@@ -44,7 +44,7 @@ export default class SauceCommand extends Command {
             return interaction.reply({ content: `It seems someone in here did something wrong ${randomSadEmoji()} (code ${json.header.status})`, ephemeral: true });
         }
         await interaction.deferReply();
-        const embedList = new EmbedList({ time: 30000 });
+        const embedList = new EmbedList({ time: 60000 });
         for(let i = 0; i < json.results.length; i++) {
             embedList.add(
                 await SauceCommand.createEmbed(json.results[i])
@@ -95,6 +95,7 @@ export default class SauceCommand extends Command {
                     .setTimestamp(new Date(tmp.data.created_at));
                 break;
             }
+            case 18:
             case 38: {
                 const tmp = data as SauceNAOResult<38>;
                 res.setTitle(tmp.data.source)
@@ -128,6 +129,18 @@ export default class SauceCommand extends Command {
                 const tmp = data as SauceNAOResult<27>;
                 res.setTitle(tmp.data.source)
                     .setAuthor(tmp.data.creator);
+                break;
+            }
+            case 16: {
+                const tmp = data as SauceNAOResult<16>;
+                res.setTitle(tmp.data.source)
+                    .setAuthor(tmp.data.creator);
+                break;
+            }
+            case 36: {
+                const tmp = data as SauceNAOResult<36>;
+                res.setTitle(tmp.data.source)
+                    .addField("Part:", tmp.data.part, true);
                 break;
             }
             default:
@@ -165,12 +178,15 @@ export type DataType = {
     21: SauceAnimeData,
     40: SauceFurAffinityData,
     41: SauceTwitterData,
+    18: SauceEHentaiData,
     38: SauceEHentaiData,
     31: SauceBcyData,
     42: SauceFurryNetworkData,
     35: SaucePawooData,
     8: SauceNicoNicoData,
     27: SauceSankakuData
+    16: SauceFAKKUData,
+    36: SauceMadokamiData
 }
 
 interface TitledData {
@@ -252,4 +268,17 @@ export type SauceSankakuData = {
     material: string,
     characters: string,
     source: string
+}
+
+export type SauceFAKKUData = {
+    source: string,
+    creator: string
+}
+
+
+export type SauceMadokamiData = {
+    mu_id: number,
+    source: string,
+    part: string,
+    type: string
 }

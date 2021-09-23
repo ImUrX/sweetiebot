@@ -16,7 +16,8 @@
     "compile": "tsc -p ./",
     "lint": "eslint src --ext ts",
     "watch": "tsc -watch -p ./",
-    "pretest": "npm run compile && npm run lint"
+    "pretest": "npm run compile && npm run lint",
+    "start": "npm run compile && node --experimental-json-modules bin/src/index.js"
   },
   "devDependencies": {
     "@types/common-tags": "^1.8.1",

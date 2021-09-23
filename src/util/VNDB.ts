@@ -148,8 +148,8 @@ export enum VNDBType {
 
 export type VNDBFlag = {
 	[VNDBType.VN]: IDData<VNData>
-	/*[VNDBType.RELEASE]: "basic" | "details" | "vn"
-	[VNDBType.PRODUCER]: "basic" | "details" | "relations"
+	[VNDBType.RELEASE]: IDData<ReleaseData>
+	/*[VNDBType.PRODUCER]: "basic" | "details" | "relations"
 	[VNDBType.CHARACTER]: "basic" | "details" | "meas" | "vns" | "voiced" | "instances"
 	[VNDBType.STAFF]: "basic" | "details" | "aliases" | "vns" | "voiced"
 	[VNDBType.QUOTE]: "basic"
@@ -166,7 +166,7 @@ interface IdentifiedData {
 	id: number
 }
 
-export type VNData = {
+type VNData = {
 	basic: VNBasicData,
 	details: VNDetailsData,
 	anime: VNAnimeData,
@@ -177,7 +177,13 @@ export type VNData = {
 	staff: VNStaffData	
 }
 
-interface VNBasicData {
+type ReleaseData = {
+	basic: ReleaseBasicData,
+	details: ReleaseDetailsData,
+	vn: ReleaseVNData
+}
+
+export interface VNBasicData {
 	title: string
 	original?: string
 	released?: string,
@@ -251,3 +257,7 @@ export interface VNStaffData {
 		note?: string
 	}[]
 }
+
+export interface ReleaseBasicData {}
+export interface ReleaseDetailsData {}
+export interface ReleaseVNData {}
