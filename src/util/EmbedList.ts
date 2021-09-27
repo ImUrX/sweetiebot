@@ -5,7 +5,7 @@ export default class EmbedList {
     actionRow = new MessageActionRow();
     index = 0;
     options: EmbedListOptions = {
-        time: 15000,
+        time: 7000,
         addFooter: true
     };
     constructor(options?: EmbedListOptions) {
@@ -47,7 +47,7 @@ export default class EmbedList {
         if(!interaction.channel) throw new TypeError("There is no channel in the interaction");
         const collector = interaction.channel.createMessageComponentCollector({
             filter: i => i.message.id === msg.id && ["back", "next"].includes(i.customId) && i.user.id === interaction.user.id,
-            time: this.options.time,
+            time: (this.options.time || 0) * this.embeds.length,
             componentType: "BUTTON"
         });
 

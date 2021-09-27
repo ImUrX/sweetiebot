@@ -43,7 +43,7 @@ export default class SauceCommand extends Command {
             return interaction.reply({ content: `It seems someone in here did something wrong ${randomSadEmoji()} (code ${json.header.status})`, ephemeral: true });
         }
         await interaction.deferReply();
-        const embedList = new EmbedList({ time: 60000 });
+        const embedList = new EmbedList({ time: 15000 });
         for(let i = 0; i < json.results.length; i++) {
             embedList.add(
                 await SauceCommand.createEmbed(json.results[i])
