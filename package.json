@@ -31,7 +31,7 @@
     "mongodb": "^3.5.5",
     "mustache": "^4.0.1",
     "node-fetch": "^2.6.1",
-    "sharp": "^0.25.2",
+    "sharp": "^0.30.5",
     "squares-rng": "^1.0.1"
   }
 }
