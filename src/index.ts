@@ -1,4 +1,4 @@
-import { Intents } from "discord.js";
+import { GatewayIntentBits } from "discord.js";
 import fs from "fs/promises";
 import path from "path";
 import canvas from "canvas";
@@ -8,8 +8,9 @@ const validFontTypes = [
     ".ttc", ".ttf", ".otf"
 ];
 
+
 const client = new Client({
-    intents: [Intents.FLAGS.GUILDS]
+    intents: [GatewayIntentBits.Guilds]
 });
 
 client.once("ready", () => {

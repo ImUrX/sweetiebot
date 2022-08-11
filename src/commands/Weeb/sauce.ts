@@ -1,5 +1,4 @@
-import { SlashCommandBuilder } from "@discordjs/builders";
-import { CommandInteraction, BaseCommandInteraction, MessageEmbed } from "discord.js";
+import { APIEmbedField, CommandInteraction, EmbedBuilder, SlashCommandBuilder } from "discord.js";
 import fetch from "node-fetch";
 import { stripIndent } from "common-tags";
 import { getKawaiiLink, randomSadEmoji } from "../../util/util.js";
@@ -28,19 +27,22 @@ export default class SauceCommand extends Command {
         await SauceCommand.replyTo(interaction, url);
     }
 
-    static async replyTo(interaction: BaseCommandInteraction, url: string): Promise<void> {
+    static async replyTo(interaction: CommandInteraction, url: string): Promise<void> {
         const json = await fetch(stripIndent`
         https://saucenao.com/search.php?db=999&output_type=2&numres=5&api_key=${auth.saucenao}&url=${encodeURIComponent(url)}`
         ).then(res => res.json() as Promise<SauceNAOData<unknown>>);
 
         if(json.header.status > 0 && !json.results.length) {
-            return interaction.reply({ content: `It seems SauceNAO is having some problems (code ${json.header.status})`, ephemeral: true });
+            interaction.reply({ content: `It seems SauceNAO is having some problems (code ${json.header.status})`, ephemeral: true });
+            return;
         }
         if(json.header.status < 0) {
             if(json.header.status === -3) {
-                return interaction.reply({ content: `The URL isn't a supported image by SauceNAO ${randomSadEmoji()}`, ephemeral: true });
+                interaction.reply({ content: `The URL isn't a supported image by SauceNAO ${randomSadEmoji()}`, ephemeral: true });
+                return;
             }
-            return interaction.reply({ content: `It seems someone in here did something wrong ${randomSadEmoji()} (code ${json.header.status})`, ephemeral: true });
+            interaction.reply({ content: `It seems someone in here did something wrong ${randomSadEmoji()} (code ${json.header.status})`, ephemeral: true });
+            return;
         }
         await interaction.deferReply();
         const embedList = new EmbedList({ time: 15000 });
@@ -52,40 +54,38 @@ export default class SauceCommand extends Command {
         await embedList.send(interaction);
     }
 
-    static async createEmbed(data: SauceNAOResult<unknown>): Promise<MessageEmbed> {
-        const res = new MessageEmbed()
+    static async createEmbed(data: SauceNAOResult<unknown>): Promise<EmbedBuilder> {
+        const res = new EmbedBuilder()
             .setImage(await getKawaiiLink(data.header.thumbnail))
             .setDescription(`Similarity ${data.header.similarity}%`)
-            .setFooter(data.header.index_name)
-            .setColor("PURPLE");
+            .setFooter({ text: data.header.index_name })
+            .setColor("Purple");
         if(data.data.ext_urls && data.data.ext_urls.length > 0) {
             res.setURL(data.data.ext_urls[0]);
         }
         switch(data.header.index_id) {
-            case 34: { // no deep type guard currently for discrimating unions
-                const tmp = data as SauceNAOResult<34>;
-                res.setAuthor(tmp.data.author_name, undefined, tmp.data.author_url)
-                    .setTitle(tmp.data.title);
-                break;
-            }
             case 5:
-            case 6: {
-                const tmp = data as SauceNAOResult<6>;
-                res.setAuthor(tmp.data.member_name, undefined, `https://www.pixiv.net/users/${tmp.data.member_id}`)
+            case 6: { // no deep type guard currently for discrimating unions
+                const tmp = data as SauceNAOResult<5 | 6>;
+                res.setAuthor({ name: tmp.data.member_name, url: `https://www.pixiv.net/users/${tmp.data.member_id}` })
                     .setTitle(tmp.data.title);
                 break;
             }
             case 21: {
                 const tmp = data as SauceNAOResult<21>;
-                if(tmp.data.part) res.addField("Part:", tmp.data.part, true);
+                const fields: APIEmbedField[] = [];
+                if(tmp.data.part) fields.push({name: "Part:", value: tmp.data.part, inline: true});
+                fields.push({ name: "Timestamp:", value: tmp.data.est_time, inline: true });
                 res.setTitle(tmp.data.source)
-                    .addField("Timestamp:", tmp.data.est_time, true);
+                    .addFields(fields);
                 break;
             }
-            case 40: {
-                const tmp = data as SauceNAOResult<40>;
-                res.setAuthor(tmp.data.author_name, undefined, tmp.data.author_url)
-                    .setTitle(tmp.data.title);
+            case 34:
+            case 40:
+            case 42: {
+                const tmp = data as SauceNAOResult<34 | 40 | 42>;
+                res.setTitle(tmp.data.title)
+                    .setAuthor({ name: tmp.data.author_name, url: tmp.data.author_url });
                 break;
             }
             case 41: {
@@ -96,21 +96,15 @@ export default class SauceCommand extends Command {
             }
             case 18:
             case 38: {
-                const tmp = data as SauceNAOResult<38>;
+                const tmp = data as SauceNAOResult<18 | 38>;
                 res.setTitle(tmp.data.source)
-                    .setAuthor(tmp.data.creator.join(" & "));
+                    .setAuthor({ name: tmp.data.creator.join(" & ") });
                 break;
             }
             case 31: {
                 const tmp = data as SauceNAOResult<31>;
                 res.setTitle(tmp.data.title)
-                    .setAuthor(tmp.data.member_name, undefined, `https://bcy.net/u/${tmp.data.member_link_id}`);
-                break;
-            }
-            case 42: {
-                const tmp = data as SauceNAOResult<42>;
-                res.setTitle(tmp.data.title)
-                    .setAuthor(tmp.data.author_name, undefined, tmp.data.author_url);
+                    .setAuthor({ name: tmp.data.member_name, url: `https://bcy.net/u/${tmp.data.member_link_id}` });
                 break;
             }
             case 35: {
@@ -121,31 +115,21 @@ export default class SauceCommand extends Command {
             case 8: {
                 const tmp = data as SauceNAOResult<8>;
                 res.setTitle(tmp.data.title)
-                    .setAuthor(tmp.data.member_name, undefined, `https://seiga.nicovideo.jp/user/illust/${tmp.data.member_id}`);
+                    .setAuthor({ name: tmp.data.member_name, url: `https://seiga.nicovideo.jp/user/illust/${tmp.data.member_id}` });
                 break;
             }
-            case 27: {
-                const tmp = data as SauceNAOResult<27>;
-                res.setTitle(tmp.data.source)
-                    .setAuthor(tmp.data.creator);
-                break;
-            }
+            case 27:
+            case 12:
             case 16: {
-                const tmp = data as SauceNAOResult<16>;
+                const tmp = data as SauceNAOResult<27 | 12 | 16>;
                 res.setTitle(tmp.data.source)
-                    .setAuthor(tmp.data.creator);
+                    .setAuthor({ name: tmp.data.creator });
                 break;
             }
             case 36: {
                 const tmp = data as SauceNAOResult<36>;
                 res.setTitle(tmp.data.source)
-                    .addField("Part:", tmp.data.part, true);
-                break;
-            }
-            case 12: {
-                const tmp = data as SauceNAOResult<12>;
-                res.setTitle(tmp.data.source)
-                    .setAuthor(tmp.data.creator);
+                    .addFields({name: "Part:", value: tmp.data.part, inline: true});
                 break;
             }
             default:

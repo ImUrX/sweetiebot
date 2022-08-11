@@ -1,8 +1,8 @@
-import { MessageActionRow, MessageButton, BaseCommandInteraction, MessageEmbed, InteractionReplyOptions } from "discord.js";
+import { ActionRowBuilder, ButtonBuilder, CommandInteraction, ButtonStyle, EmbedBuilder, InteractionReplyOptions, ComponentType } from "discord.js";
 
 export default class EmbedList {
-    embeds: MessageEmbed[] = [];
-    actionRow = new MessageActionRow();
+    embeds: EmbedBuilder[] = [];
+    actionRow = new ActionRowBuilder<ButtonBuilder>();
     index = 0;
     options: EmbedListOptions = {
         time: 7000,
@@ -10,15 +10,15 @@ export default class EmbedList {
     };
     constructor(options?: EmbedListOptions) {
         this.actionRow.addComponents(
-            new MessageButton()
+            new ButtonBuilder()
                 .setCustomId("back")
                 .setLabel("< Prev.")
-                .setStyle("SECONDARY")
+                .setStyle(ButtonStyle.Secondary)
                 .setDisabled(true),
-            new MessageButton()
+            new ButtonBuilder()
                 .setCustomId("next")
                 .setLabel("Next >")
-                .setStyle("SECONDARY")
+                .setStyle(ButtonStyle.Secondary)
                 .setDisabled(true)
         );
         
@@ -28,19 +28,19 @@ export default class EmbedList {
         };
     }
 
-    add(...embeds: MessageEmbed[]): void {
+    add(...embeds: EmbedBuilder[]): void {
         this.embeds.push(...embeds);
     }
 
     async send(
-        interaction: BaseCommandInteraction,
+        interaction: CommandInteraction,
         interactionOptions: InteractionReplyOptions & { fetchReply: true } = { fetchReply: true }
         ): Promise<unknown> {
         if(this.embeds.length > 1) {
             this.actionRow.components[1].setDisabled(false);
         }
         if(this.options.addFooter) {
-            this.embeds.forEach((x, i) => x.setFooter(`${i+1}/${this.embeds.length}`));
+            this.embeds.forEach((x, i) => x.setFooter({ text: `${i+1}/${this.embeds.length}` }));
         }
 
         const msg = await interaction[interaction.deferred ? "editReply" : "reply"]({ embeds: [this.embeds[this.index]], components: [this.actionRow], ...interactionOptions });
@@ -48,7 +48,7 @@ export default class EmbedList {
         const collector = interaction.channel.createMessageComponentCollector({
             filter: i => i.message.id === msg.id && ["back", "next"].includes(i.customId) && i.user.id === interaction.user.id,
             time: (this.options.time || 0) * this.embeds.length,
-            componentType: "BUTTON"
+            componentType: ComponentType.Button
         });
 
         collector.on("collect", async i => {

@@ -6,7 +6,7 @@ import Command from"./Command.js";
 
 export default class SweetieClient extends Client {
     #commands: Store<Command> = new Store(this, "./commands/", true);
-    #rest = new REST({ version: "9" });
+    #rest = new REST({ version: "10" });
 
     constructor(options: ClientOptions) {
         super(options);
