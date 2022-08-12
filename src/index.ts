@@ -3,7 +3,7 @@ import fs from "fs/promises";
 import path from "path";
 import canvas from "canvas";
 import Client from "./lib/SweetieClient.js";
-import auth from "../auth.json";
+import auth from "../auth.json" assert { type: "json" };
 const validFontTypes = [
     ".ttc", ".ttf", ".otf"
 ];

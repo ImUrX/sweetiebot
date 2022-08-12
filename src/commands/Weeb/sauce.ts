@@ -3,7 +3,7 @@ import fetch from "node-fetch";
 import { stripIndent } from "common-tags";
 import { getKawaiiLink, randomSadEmoji } from "../../util/util.js";
 import Command from "../../lib/Command.js";
-import auth from "../../../auth.json";
+import auth from "../../../auth.json" assert { type: "json" };;
 import EmbedList from "../../util/EmbedList.js";
 
 export default class SauceCommand extends Command {
