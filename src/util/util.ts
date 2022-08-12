@@ -208,7 +208,7 @@ export function getAllStringsOfObject(obj: object): string[] {
 	return arr;
 } 
 
-const tokens = new RegExp(getAllStringsOfObject(auth).join("|"), "g");
+const tokens = new RegExp(getAllStringsOfObject(auth).filter(s => s).join("|"), "g");
 export function censorTokens(text: string): string {
 	return text.replace(tokens, "□");
 }

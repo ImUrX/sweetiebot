@@ -96,7 +96,7 @@ export default class SauceCommand extends Command {
             case 38: {
                 const tmp = data as SauceNAOResult<18 | 38>;
                 res.setTitle(tmp.data.source)
-                    .setAuthor({ name: tmp.data.creator.join(" & ") });
+                    .setAuthor({ name: shortify(tmp.data.creator.join(" & "), 50) });
                 break;
             }
             case 31: {
