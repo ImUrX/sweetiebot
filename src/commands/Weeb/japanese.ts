@@ -1,6 +1,6 @@
 import { SlashCommandBuilder, bold, hyperlink } from "@discordjs/builders";
 import { ChatInputCommandInteraction, EmbedBuilder } from "discord.js";
-import { Canvas } from "@napi-rs/canvas";
+import { Canvas } from "canvas";
 import Command from "../../lib/Command.js";
 import EmbedList from "../../util/EmbedList.js";
 import { JishoWord, words } from "../../util/jisho.js";
@@ -102,7 +102,7 @@ export default class JapaneseCommand extends Command  {
         ctx.font = font(newSize);
         ctx.fillText(word, halfWidth, halfHeight);
 
-		if(!first.furigana.length) return canvas.toBuffer("image/png");
+		if(!first.furigana.length) return canvas.toBuffer();
 
 		let firstCharX = halfWidth;
 		if(even) {
@@ -120,7 +120,7 @@ export default class JapaneseCommand extends Command  {
             ctx.fillText(furigana, firstCharX + (newSize * i), halfHeight - newSize);
 		}
 
-		return canvas.toBuffer("image/png");
+		return canvas.toBuffer();
 	}
 }
 

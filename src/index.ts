@@ -1,9 +1,9 @@
 import { GatewayIntentBits } from "discord.js";
 import fs from "fs/promises";
 import path from "path";
+import canvas from "canvas";
 import Client from "./lib/SweetieClient.js";
 import auth from "../auth.json" assert { type: "json" };
-import { GlobalFonts } from "@napi-rs/canvas";
 const validFontTypes = [
     ".ttc", ".ttf", ".otf"
 ];
@@ -34,7 +34,12 @@ async function loadFonts() {
         promises.push(fs.readdir(path.join(fontsFolder, dir)).then(files => {
             for(const file of files) {
                 if(!validFontTypes.includes(path.extname(file))) continue;
-                GlobalFonts.registerFromPath(path.join(fontsFolder, dir, file), dir);
+                const info = file.split("-");
+                canvas.registerFont(path.join(fontsFolder, dir, file), {
+                    family: dir,
+                    weight: info[1] || "regular",
+                    style: info[2] || "regular"
+                });
             }
         }));
     }
