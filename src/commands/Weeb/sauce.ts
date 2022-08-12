@@ -1,4 +1,4 @@
-import { APIEmbedField, CommandInteraction, EmbedBuilder, SlashCommandBuilder } from "discord.js";
+import { APIEmbedField, ChatInputCommandInteraction, CommandInteraction, EmbedBuilder, SlashCommandBuilder } from "discord.js";
 import fetch from "node-fetch";
 import { stripIndent } from "common-tags";
 import { getKawaiiLink, randomSadEmoji } from "../../util/util.js";
@@ -10,21 +10,19 @@ export default class SauceCommand extends Command {
     properties = new SlashCommandBuilder()
         .setName(this.name)
         .setDescription("Searches the image's original anime with saucenao.com")
-        .addStringOption(option => 
-            option.setName("url")
-                .setDescription("URL of the image")
+        .addAttachmentOption(option =>
+            option.setName("image")
+                .setDescription("Image to reverse-lookup for")
                 .setRequired(true)
-    );
+        )
 
-    async run(interaction: CommandInteraction): Promise<unknown> {
-        const url = interaction.options.getString("url", true);
-        try {
-            new URL(url);
-        } catch(e) {
+    async run(interaction: ChatInputCommandInteraction): Promise<unknown> {
+        const url = interaction.options.getAttachment("image", true);
+        if(!url.contentType?.startsWith("image")) {
             return interaction.reply({ content: `The URL isn't valid ${randomSadEmoji()}`, ephemeral: true });
         }
         
-        await SauceCommand.replyTo(interaction, url);
+        await SauceCommand.replyTo(interaction, url.proxyURL);
     }
 
     static async replyTo(interaction: CommandInteraction, url: string): Promise<void> {

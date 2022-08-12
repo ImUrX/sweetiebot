@@ -3,6 +3,7 @@ import { REST } from "@discordjs/rest";
 import { Routes } from "discord-api-types/v9";
 import Store from "./base/Store.js";
 import Command from"./Command.js";
+import { censorTokens, randomSadEmoji } from "../util/util.js";
 
 export default class SweetieClient extends Client {
     #commands: Store<Command> = new Store(this, "./commands/", true);
@@ -12,14 +13,21 @@ export default class SweetieClient extends Client {
         super(options);
 
         this.on("interactionCreate", async interaction => {
-            if(interaction.isCommand()) {
+            // missing support for autocomplete, modals. subcommands and context menus
+            if(interaction.isChatInputCommand()) {
                 const command = this.#commands.collection.get(interaction.commandName);
                 if(!command) return;
                 try {
                     await command.run(interaction);
                 } catch (error) {
                     console.error(error);
-                    await interaction.reply({ content: "There was an error while executing this command!", ephemeral: true });
+                    let message: string | null = null;
+                    if(error instanceof Error) {
+                        message = censorTokens(error.message);
+                    } else if (typeof error === "string") {
+                        message = censorTokens(error);
+                    }
+                    await interaction.reply({ content: (message ?? "There was an error while executing this command!") + randomSadEmoji(), ephemeral: true });
                 } 
             }
         });

@@ -1,11 +1,10 @@
-import { SlashCommandBuilder, bold } from "@discordjs/builders";
-import { CommandInteraction, MessageEmbed } from "discord.js";
+import { SlashCommandBuilder, bold, hyperlink } from "@discordjs/builders";
+import { ChatInputCommandInteraction, EmbedBuilder } from "discord.js";
 import { Canvas } from "canvas";
-import fetch from "node-fetch";
 import Command from "../../lib/Command.js";
-import auth from "../../../auth.json";
 import EmbedList from "../../util/EmbedList.js";
-import { randomSadEmoji, getKawaiiLink } from "../../util/util.js";
+import { getKawaiiLink } from "../../util/util.js";
+import { JishoWord, words } from "../../util/jisho.js";
 
 export default class JapaneseCommand extends Command  {
     properties = new SlashCommandBuilder()
@@ -15,15 +14,11 @@ export default class JapaneseCommand extends Command  {
             input.setName("word")
                 .setDescription("Can be a kanji, a japanese word or even an english word (Same search features as Jisho)") 
                 .setRequired(true)   
-        )
-    async run(interaction: CommandInteraction): Promise<unknown> {
+        );
+    async run(interaction: ChatInputCommandInteraction): Promise<unknown> {
         const word = interaction.options.getString("word", true);
-        const { data, meta } = await fetch(`${auth.jishoextender}/search/words?keyword=${encodeURIComponent(word)}`)
-            .then(res => res.json() as Promise<JishoResult>);
+        const data = await words(word);
         
-        if(meta.status !== 200) {
-            return interaction.reply({ content: `Jisho returned status coded \`\`${meta.status}\`\` ${randomSadEmoji()}`, ephemeral: true });
-        }
         await interaction.deferReply();
         const length = data.length > 12 ? 12 : data.length;
         const embedList = new EmbedList();
@@ -34,13 +29,13 @@ export default class JapaneseCommand extends Command  {
         return embedList.send(interaction);
     }
 
-    static async makeEmbed(data: JishoWord): Promise<MessageEmbed> {
-        const embed = new MessageEmbed()
+    static async makeEmbed(data: JishoWord): Promise<EmbedBuilder> {
+        const embed = new EmbedBuilder()
             .setTitle(data.slug)
             .setURL(`https://jisho.org/word/${encodeURIComponent(data.slug)}`);
 
         const tags = JapaneseCommand.processTags(data).join(" - ");
-        if(tags) embed.setDescription(`**tags**: ${tags}`);
+        if(tags) embed.setDescription(`${bold(tags)}: ${tags}`);
 
         for(let i = 0; i < data.senses.length; i++) {
             const sense = data.senses[i];
@@ -48,17 +43,17 @@ export default class JapaneseCommand extends Command  {
             content += [
                 ...sense.tags,
                 ...sense.restrictions.map(rest => `Only applies to ${rest}`),
-                ...sense.see_also.map(also => `See also [${also}](https://jisho.org/search/${encodeURIComponent(also)})`),
+                ...sense.see_also.map(also => `See also ${hyperlink(also, `https://jisho.org/search/${encodeURIComponent(also)})`)}`),
                 ...sense.info,
                 sense.links.map(link => `[${link.text}](${link.url})`).join("\n")
             ].join(", ");
 
-            if(!sense.parts_of_speech.length && embed.fields.length > 0) {
-				embed.fields[embed.fields.length - 1].value += `\n${content}`;
+            if(!sense.parts_of_speech.length && embed.data.fields?.length !== undefined && embed.data.fields.length > 0) {
+				embed.data.fields[embed.data.fields.length - 1].value += `\n${content}`;
 				continue;
 			}
 
-            embed.addField(sense.parts_of_speech.join(", ") || "\u200b", content);
+            embed.addFields({ name: sense.parts_of_speech.join(", ") || "\u200b", value: content });
         }
 
         const forms = [];
@@ -66,7 +61,7 @@ export default class JapaneseCommand extends Command  {
             const form = data.japanese[i];
             forms.push(`${form.word} 【${form.reading}】`);
         }
-        if(forms.length > 1) embed.addField("Other forms", forms.join("、"));
+        if(forms.length > 1) embed.addFields({ name: "Other forms", value: forms.join("、") });
 
         embed.setThumbnail(await getKawaiiLink(JapaneseCommand.generateFurigana(data)));
         return embed;
@@ -130,49 +125,3 @@ export default class JapaneseCommand extends Command  {
 }
 
 const font = (size: number) => `${size}px Noto Sans`;
-
-export type JishoResult = {
-    meta: {
-        status: number,
-    },
-    data: JishoWord[]
-}
-
-export type JishoWord = {
-    slug: string,
-    is_common: boolean,
-    tags: string[],
-    jlpt: string[],
-    japanese: JishoJapanese[],
-    senses: JishoSense[],
-    attribution: {
-        jmdict: boolean,
-        jmnedict: boolean,
-        dbpedia: boolean
-    },
-    audio: {
-        mp3?: string,
-        ogg?: string
-    }
-}
-
-export type JishoJapanese = {
-    word: string,
-    reading: string,
-    furigana: string[]
-}
-
-export type JishoSense = {
-    english_definitions: string[],
-    parts_of_speech: string[],
-    links: {
-        text: string,
-        url: string
-    }[]
-    tags: string[],
-    restrictions: string[],
-    see_also: string[],
-    antonyms: string[],
-    source: string[],
-    info: string[]
-}
