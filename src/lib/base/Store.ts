@@ -2,6 +2,7 @@ import fs from "fs/promises";
 import path from "path";
 import { Collection, Base, Client } from "discord.js";
 import Piece, { PieceOptions } from "./Piece.js";
+import { pathToFileURL } from "url";
 
 export default class Store<T extends Piece> extends Base {
     #dirPath: string;
@@ -26,7 +27,7 @@ export default class Store<T extends Piece> extends Base {
             }
             if(!file.name.endsWith(".js")) continue;
 
-            const PieceType: new (client: Client, options: PieceOptions) => T = (await import(path.join(mainDir, dirPath, file.name))).default;
+            const PieceType: new (client: Client, options: PieceOptions) => T = (await import(pathToFileURL(path.join(mainDir, dirPath, file.name)).href)).default;
             const piece = new PieceType(this.client, {
                 name: file.name.slice(0, -3),
                 category: this.categorized ? path.dirname(path.join(dirPath, file.name)).split(path.sep).at(-1) : undefined

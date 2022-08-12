@@ -1,16 +1,18 @@
-import { Client, ClientOptions } from "discord.js";
+import { AttachmentBuilder, Client, ClientOptions } from "discord.js";
 import { REST } from "@discordjs/rest";
 import { Routes } from "discord-api-types/v9";
 import Store from "./base/Store.js";
 import Command from"./Command.js";
-import { censorTokens, randomSadEmoji } from "../util/util.js";
+import { censorTokens, getBuffer, randomSadEmoji } from "../util/util.js";
 
 export default class SweetieClient extends Client {
     #commands: Store<Command> = new Store(this, "./commands/", true);
     #rest = new REST({ version: "10" });
+    imageCacheChannel: string;
 
-    constructor(options: ClientOptions) {
+    constructor(options: ClientOptions, imageCacheChannel: string) {
         super(options);
+        this.imageCacheChannel = imageCacheChannel;
 
         this.on("interactionCreate", async interaction => {
             // missing support for autocomplete, modals. subcommands and context menus
@@ -43,5 +45,15 @@ export default class SweetieClient extends Client {
             );
 
         return await super.login(token);
+    }
+
+    async uploadImage(img: string | Buffer, notGif = false): Promise<string> {
+        const channel = await this.channels.fetch(this.imageCacheChannel);
+        if(!channel?.isTextBased()) throw "Image cache is not a text-based channel";
+        const attachment = new AttachmentBuilder(await getBuffer(img, notGif));
+        const msg = await channel.send({ files: [attachment]});
+        const url =  msg.attachments.first()?.proxyURL;
+        if(!url) throw "No URL was returned for the image";
+        return url;
     }
 }

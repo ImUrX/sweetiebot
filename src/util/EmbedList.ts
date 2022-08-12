@@ -43,9 +43,8 @@ export default class EmbedList {
         if(this.options.addFooter) {
             this.embeds.forEach((x, i) => x.setFooter({ text: `${i+1}/${this.embeds.length}` }));
         }
-
         const msg = await interaction[interaction.deferred ? "editReply" : "reply"]({
-            embeds: this.embeds.slice(this.index, this.index + (this.options.displayAmount - 1)),
+            embeds: this.embeds.slice(this.index, this.index + this.options.displayAmount),
             components: [this.actionRow],
             ...interactionOptions
         });
@@ -59,14 +58,14 @@ export default class EmbedList {
         collector.on("collect", async i => {
             if(i.customId === "next") {
                 this.index++;
-                if(this.index + (this.options.displayAmount - 1) >= this.embeds.length - 1) this.actionRow.components[1].setDisabled(true);
-                if(this.index + (this.options.displayAmount - 1) > 0) this.actionRow.components[0].setDisabled(false);
+                if(this.index + this.options.displayAmount - 1 >= this.embeds.length - 1) this.actionRow.components[1].setDisabled(true);
+                if(this.index + this.options.displayAmount - 1 > 0) this.actionRow.components[0].setDisabled(false);
             } else if(i.customId === "back") {
                 this.index--;
-                if(this.index + (this.options.displayAmount - 1) < this.embeds.length) this.actionRow.components[1].setDisabled(false);
-                if(this.index + (this.options.displayAmount - 1) <= 0) this.actionRow.components[0].setDisabled(true);
+                if(this.index + this.options.displayAmount - 1 < this.embeds.length) this.actionRow.components[1].setDisabled(false);
+                if(this.index + this.options.displayAmount - 1 <= 0) this.actionRow.components[0].setDisabled(true);
             }
-            await i.update({ embeds: [this.embeds[this.index]], components: [this.actionRow] });
+            await i.update({ embeds: this.embeds.slice(this.index, this.index + this.options.displayAmount), components: [this.actionRow] });
         });
 
         collector.on("end", async () => {

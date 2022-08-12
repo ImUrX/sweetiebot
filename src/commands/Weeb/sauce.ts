@@ -1,10 +1,11 @@
 import { APIEmbedField, ChatInputCommandInteraction, CommandInteraction, EmbedBuilder, SlashCommandBuilder } from "discord.js";
 import fetch from "node-fetch";
 import { stripIndent } from "common-tags";
-import { getKawaiiLink, randomSadEmoji, shortify } from "../../util/util.js";
+import { randomSadEmoji, shortify } from "../../util/util.js";
 import Command from "../../lib/Command.js";
 import auth from "../../../auth.json" assert { type: "json" };
 import EmbedList from "../../util/EmbedList.js";
+import SweetieClient from "../../lib/SweetieClient.js";
 
 export default class SauceCommand extends Command {
     properties = new SlashCommandBuilder()
@@ -21,11 +22,10 @@ export default class SauceCommand extends Command {
         if(!url.contentType?.startsWith("image")) {
             return interaction.reply({ content: `The URL isn't valid ${randomSadEmoji()}`, ephemeral: true });
         }
-        
-        await SauceCommand.replyTo(interaction, url.proxyURL);
+        await SauceCommand.replyTo(interaction, url.proxyURL, this.client);
     }
 
-    static async replyTo(interaction: CommandInteraction, url: string): Promise<void> {
+    static async replyTo(interaction: CommandInteraction, url: string, client: SweetieClient): Promise<void> {
         const json = await fetch(stripIndent`
         https://saucenao.com/search.php?db=999&output_type=2&numres=5&api_key=${auth.saucenao}&url=${encodeURIComponent(url)}`
         ).then(res => res.json() as Promise<SauceNAOData<unknown>>);
@@ -43,18 +43,18 @@ export default class SauceCommand extends Command {
             return;
         }
         await interaction.deferReply();
-        const embedList = new EmbedList({ time: 15000 });
+        const embedList = new EmbedList({ time: 15000, displayAmount: 2 });
         for(let i = 0; i < json.results.length; i++) {
             embedList.add(
-                await SauceCommand.createEmbed(json.results[i])
+                await SauceCommand.createEmbed(json.results[i], client)
             );
         }
         await embedList.send(interaction);
     }
 
-    static async createEmbed(data: SauceNAOResult<unknown>): Promise<EmbedBuilder> {
+    static async createEmbed(data: SauceNAOResult<unknown>, client: SweetieClient): Promise<EmbedBuilder> {
         const res = new EmbedBuilder()
-            .setImage(await getKawaiiLink(data.header.thumbnail))
+            .setImage(await client.uploadImage(data.header.thumbnail))
             .setDescription(`Similarity ${data.header.similarity}%`)
             .setFooter({ text: data.header.index_name })
             .setColor("Purple");

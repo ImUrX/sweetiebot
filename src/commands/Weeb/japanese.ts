@@ -1,10 +1,10 @@
 import { SlashCommandBuilder, bold, hyperlink } from "@discordjs/builders";
 import { ChatInputCommandInteraction, EmbedBuilder } from "discord.js";
-import { Canvas } from "canvas";
+import { Canvas } from "@napi-rs/canvas";
 import Command from "../../lib/Command.js";
 import EmbedList from "../../util/EmbedList.js";
-import { getKawaiiLink } from "../../util/util.js";
 import { JishoWord, words } from "../../util/jisho.js";
+import SweetieClient from "../../lib/SweetieClient.js";
 
 export default class JapaneseCommand extends Command  {
     properties = new SlashCommandBuilder()
@@ -23,13 +23,13 @@ export default class JapaneseCommand extends Command  {
         const length = data.length > 12 ? 12 : data.length;
         const embedList = new EmbedList();
         for(let i = 0; i < length; i++) {
-            const embed = await JapaneseCommand.makeEmbed(data[i]);
+            const embed = await JapaneseCommand.makeEmbed(data[i], this.client);
             embedList.add(embed);
         }
         return embedList.send(interaction);
     }
 
-    static async makeEmbed(data: JishoWord): Promise<EmbedBuilder> {
+    static async makeEmbed(data: JishoWord, client: SweetieClient): Promise<EmbedBuilder> {
         const embed = new EmbedBuilder()
             .setTitle(data.slug)
             .setURL(`https://jisho.org/word/${encodeURIComponent(data.slug)}`);
@@ -63,7 +63,7 @@ export default class JapaneseCommand extends Command  {
         }
         if(forms.length > 1) embed.addFields({ name: "Other forms", value: forms.join("、") });
 
-        embed.setThumbnail(await getKawaiiLink(JapaneseCommand.generateFurigana(data)));
+        embed.setThumbnail(await client.uploadImage(JapaneseCommand.generateFurigana(data)));
         return embed;
     }
     
@@ -102,7 +102,7 @@ export default class JapaneseCommand extends Command  {
         ctx.font = font(newSize);
         ctx.fillText(word, halfWidth, halfHeight);
 
-		if(!first.furigana.length) return canvas.toBuffer();
+		if(!first.furigana.length) return canvas.toBuffer("image/png");
 
 		let firstCharX = halfWidth;
 		if(even) {
@@ -120,7 +120,7 @@ export default class JapaneseCommand extends Command  {
             ctx.fillText(furigana, firstCharX + (newSize * i), halfHeight - newSize);
 		}
 
-		return canvas.toBuffer();
+		return canvas.toBuffer("image/png");
 	}
 }
 

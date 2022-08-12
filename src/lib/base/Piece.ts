@@ -1,5 +1,6 @@
 import path from "path";
-import { Client, Base } from "discord.js";
+import { Base } from "discord.js";
+import SweetieClient from "../SweetieClient";
 
 export type PieceOptions = {
     name: string | null;
@@ -7,10 +8,11 @@ export type PieceOptions = {
 }
 
 export default abstract class Piece extends Base {
+    declare client: SweetieClient;
     name: string;
     category?: string;
 
-    constructor(client: Client, { name, category }: PieceOptions) {
+    constructor(client: SweetieClient, { name, category }: PieceOptions) {
         super(client);
         this.name = name ?? path.basename(__filename);
         this.category = category;

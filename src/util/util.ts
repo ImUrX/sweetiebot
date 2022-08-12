@@ -71,7 +71,7 @@ export function grabIdFromKawaii(url: string): string {
  * Converts your URL/Image to a buffer
  */
 export async function getBuffer(img: string | Buffer, notGif = false): Promise<Buffer> {
-	let buffer = Buffer.isBuffer(img) ? img : await fetch(img).then(res => res.buffer());
+	let buffer = Buffer.isBuffer(img) ? img : Buffer.from(await fetch(img).then(res => res.arrayBuffer()));
 	const type = getImageType(buffer);
 
 	if(!type) throw "This isn't an image";
