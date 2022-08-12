@@ -2,7 +2,7 @@ import fetch from "node-fetch";
 import sharp from "sharp";
 import he from "he";
 import FormData from "form-data";
-import auth from "../../auth.json" assert { type: "json" };;
+import auth from "../../auth.json" assert { type: "json" };
 /**
  * A Map with magic numbers of supported images for sharp
  */

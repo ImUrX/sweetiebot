@@ -27,7 +27,7 @@ export default class SweetieClient extends Client {
                     } else if (typeof error === "string") {
                         message = censorTokens(error);
                     }
-                    await interaction.reply({ content: (message ?? "There was an error while executing this command!") + randomSadEmoji(), ephemeral: true });
+                    await interaction[interaction.deferred ? "editReply" : "reply"]({ content: (message ?? "There was an error while executing this command!") + " " + randomSadEmoji(), ephemeral: true });
                 } 
             }
         });

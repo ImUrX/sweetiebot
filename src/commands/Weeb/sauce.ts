@@ -1,9 +1,9 @@
 import { APIEmbedField, ChatInputCommandInteraction, CommandInteraction, EmbedBuilder, SlashCommandBuilder } from "discord.js";
 import fetch from "node-fetch";
 import { stripIndent } from "common-tags";
-import { getKawaiiLink, randomSadEmoji } from "../../util/util.js";
+import { getKawaiiLink, randomSadEmoji, shortify } from "../../util/util.js";
 import Command from "../../lib/Command.js";
-import auth from "../../../auth.json" assert { type: "json" };;
+import auth from "../../../auth.json" assert { type: "json" };
 import EmbedList from "../../util/EmbedList.js";
 
 export default class SauceCommand extends Command {
@@ -14,7 +14,7 @@ export default class SauceCommand extends Command {
             option.setName("image")
                 .setDescription("Image to reverse-lookup for")
                 .setRequired(true)
-        )
+        );
 
     async run(interaction: ChatInputCommandInteraction): Promise<unknown> {
         const url = interaction.options.getAttachment("image", true);
@@ -83,7 +83,7 @@ export default class SauceCommand extends Command {
             case 42: {
                 const tmp = data as SauceNAOResult<34 | 40 | 42>;
                 res.setTitle(tmp.data.title)
-                    .setAuthor({ name: tmp.data.author_name, url: tmp.data.author_url });
+                    .setAuthor({ name: shortify(tmp.data.author_name, 50), url: tmp.data.author_url });
                 break;
             }
             case 41: {
@@ -118,8 +118,9 @@ export default class SauceCommand extends Command {
             }
             case 27:
             case 12:
+            case 9:
             case 16: {
-                const tmp = data as SauceNAOResult<27 | 12 | 16>;
+                const tmp = data as SauceNAOResult<27 | 12 | 9 | 16>;
                 res.setTitle(tmp.data.source)
                     .setAuthor({ name: tmp.data.creator });
                 break;
@@ -128,6 +129,12 @@ export default class SauceCommand extends Command {
                 const tmp = data as SauceNAOResult<36>;
                 res.setTitle(tmp.data.source)
                     .addFields({name: "Part:", value: tmp.data.part, inline: true});
+                break;
+            }
+            case 43: {
+                const tmp = data as SauceNAOResult<43>;
+                res.setTitle(tmp.data.title)
+                    .setAuthor({ name: tmp.data.user_name });
                 break;
             }
             default:
@@ -162,9 +169,11 @@ export type DataType = {
     34: SaucedevianArtData,
     5: SaucePixivData,
     6: SaucePixivData,
+    9: SauceDanbooruData,
     21: SauceAnimeData,
     40: SauceFurAffinityData,
     41: SauceTwitterData,
+    43: SauceKemonoData,
     18: SauceEHentaiData,
     38: SauceEHentaiData,
     31: SauceBcyData,
@@ -282,4 +291,16 @@ export type SauceYandereData = {
     gelbooru_id?: number,
     yandere_id: number,
     danbooru_id?: number
+}
+
+export type SauceDanbooruData = SauceYandereData
+
+export type SauceKemonoData = {
+    published: string,
+    title: string,
+    service: string,
+    service_name: string,
+    id: string,
+    user_id: string,
+    user_name: string
 }

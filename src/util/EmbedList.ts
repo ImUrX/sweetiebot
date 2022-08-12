@@ -4,9 +4,10 @@ export default class EmbedList {
     embeds: EmbedBuilder[] = [];
     actionRow = new ActionRowBuilder<ButtonBuilder>();
     index = 0;
-    options: EmbedListOptions = {
+    options = {
         time: 7000,
-        addFooter: true
+        addFooter: true,
+        displayAmount: 1
     };
     constructor(options?: EmbedListOptions) {
         this.actionRow.addComponents(
@@ -34,7 +35,7 @@ export default class EmbedList {
 
     async send(
         interaction: CommandInteraction,
-        interactionOptions: InteractionReplyOptions & { fetchReply: true } = { fetchReply: true }
+        interactionOptions: InteractionReplyOptions & { fetchReply: boolean } = { fetchReply: true }
         ): Promise<unknown> {
         if(this.embeds.length > 1) {
             this.actionRow.components[1].setDisabled(false);
@@ -43,7 +44,11 @@ export default class EmbedList {
             this.embeds.forEach((x, i) => x.setFooter({ text: `${i+1}/${this.embeds.length}` }));
         }
 
-        const msg = await interaction[interaction.deferred ? "editReply" : "reply"]({ embeds: [this.embeds[this.index]], components: [this.actionRow], ...interactionOptions });
+        const msg = await interaction[interaction.deferred ? "editReply" : "reply"]({
+            embeds: this.embeds.slice(this.index, this.index + (this.options.displayAmount - 1)),
+            components: [this.actionRow],
+            ...interactionOptions
+        });
         if(!interaction.channel) throw new TypeError("There is no channel in the interaction");
         const collector = interaction.channel.createMessageComponentCollector({
             filter: i => i.message.id === msg.id && ["back", "next"].includes(i.customId) && i.user.id === interaction.user.id,
@@ -54,12 +59,12 @@ export default class EmbedList {
         collector.on("collect", async i => {
             if(i.customId === "next") {
                 this.index++;
-                if(this.index >= this.embeds.length - 1) this.actionRow.components[1].setDisabled(true);
-                if(this.index > 0) this.actionRow.components[0].setDisabled(false);
+                if(this.index + (this.options.displayAmount - 1) >= this.embeds.length - 1) this.actionRow.components[1].setDisabled(true);
+                if(this.index + (this.options.displayAmount - 1) > 0) this.actionRow.components[0].setDisabled(false);
             } else if(i.customId === "back") {
                 this.index--;
-                if(this.index < this.embeds.length) this.actionRow.components[1].setDisabled(false);
-                if(this.index <= 0) this.actionRow.components[0].setDisabled(true);
+                if(this.index + (this.options.displayAmount - 1) < this.embeds.length) this.actionRow.components[1].setDisabled(false);
+                if(this.index + (this.options.displayAmount - 1) <= 0) this.actionRow.components[0].setDisabled(true);
             }
             await i.update({ embeds: [this.embeds[this.index]], components: [this.actionRow] });
         });
@@ -73,5 +78,6 @@ export default class EmbedList {
 
 export type EmbedListOptions = {
     time?: number,
-    addFooter?: boolean
+    addFooter?: boolean,
+    displayAmount?: number
 }
