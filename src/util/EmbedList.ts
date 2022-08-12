@@ -62,8 +62,8 @@ export default class EmbedList {
                 if(this.index + this.options.displayAmount - 1 > 0) this.actionRow.components[0].setDisabled(false);
             } else if(i.customId === "back") {
                 this.index--;
-                if(this.index + this.options.displayAmount - 1 < this.embeds.length) this.actionRow.components[1].setDisabled(false);
-                if(this.index + this.options.displayAmount - 1 <= 0) this.actionRow.components[0].setDisabled(true);
+                if(this.index < this.embeds.length) this.actionRow.components[1].setDisabled(false);
+                if(this.index <= 0) this.actionRow.components[0].setDisabled(true);
             }
             await i.update({ embeds: this.embeds.slice(this.index, this.index + this.options.displayAmount), components: [this.actionRow] });
         });
