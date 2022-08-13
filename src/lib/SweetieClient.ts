@@ -4,8 +4,12 @@ import { Routes } from "discord-api-types/v9";
 import Store from "./base/Store.js";
 import Command from"./Command.js";
 import { censorTokens, getBuffer, randomSadEmoji } from "../util/util.js";
+import pino from "pino";
 
 export default class SweetieClient extends Client {
+	static LOGGER = pino({
+		name: "bot"
+	});
 	#commands: Store<Command> = new Store(this, "./commands/", true);
 	#rest = new REST({ version: "10" });
 	imageCacheChannel: string;
@@ -41,6 +45,10 @@ export default class SweetieClient extends Client {
 				}
 			}
 		});
+
+		this.on("debug", m => SweetieClient.LOGGER.debug(m));
+		this.on("warn", m => SweetieClient.LOGGER.warn(m));
+		this.on("error", m => SweetieClient.LOGGER.error(m));
 	}
 
 	async login(token: string, applicationId = ""): Promise<string> {

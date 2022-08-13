@@ -14,7 +14,7 @@ const client = new Client({
 }, auth.discord.imageCacheChannel);
 
 client.once("ready", () => {
-	console.log("Client is ready");
+	Client.LOGGER.info("Client is ready");
 });
 
 await loadFonts();
@@ -26,7 +26,7 @@ async function loadFonts() {
 	try {
 		await fs.access(fontsFolder);
 	} catch(e) {
-		return console.error("Fonts folder doesn't exist, canvas images won't have stylized font and maybe even have missing glyphs. Run \"npm run getFonts\" for getting missing fonts");
+		return Client.LOGGER.error("Fonts folder doesn't exist, canvas images won't have stylized font and maybe even have missing glyphs. Run \"npm run getFonts\" for getting missing fonts");
 	}
 
 	const dirs = await fs.readdir(fontsFolder), promises = [];

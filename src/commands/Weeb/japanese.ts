@@ -5,7 +5,7 @@ import Command from "../../lib/Command.js";
 import EmbedList from "../../util/EmbedList.js";
 import { JishoWord, words } from "../../util/jisho.js";
 import SweetieClient from "../../lib/SweetieClient.js";
-import { isHiragana, isKanji, toHiragana } from "wanakana";
+import { isHiragana, toHiragana } from "wanakana";
 
 export default class JapaneseCommand extends Command  {
 	properties = new SlashCommandBuilder()

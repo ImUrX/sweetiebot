@@ -17,7 +17,8 @@
     "lint": "eslint src --ext ts",
     "watch": "tsc -watch -p ./",
     "pretest": "npm run compile && npm run lint",
-    "start": "npm run compile && node --experimental-json-modules bin/src/index.js"
+    "start": "npm run compile && node --experimental-json-modules bin/src/index.js",
+    "dev": "npm start | pino-pretty -i pid,hostname -t 'yyyy-mm-dd HH:MM:ss'"
   },
   "devDependencies": {
     "@types/common-tags": "^1.8.1",
@@ -28,6 +29,7 @@
     "@typescript-eslint/eslint-plugin": "^5.33.0",
     "@typescript-eslint/parser": "^5.33.0",
     "eslint": "^8.21.0",
+    "pino-pretty": "^9.0.0",
     "typescript": "^4.7.4"
   },
   "dependencies": {
@@ -37,16 +39,20 @@
     "@napi-rs/canvas": "^0.1.26",
     "bufferutil": "^4.0.6",
     "canvas": "^2.9.3",
+    "chalk": "^5.0.1",
     "cheerio": "^1.0.0-rc.12",
     "common-tags": "^1.8.2",
     "discord-api-types": "^0.37.2",
     "discord.js": "^14.2.0",
     "fake-tag": "^4.0.0",
     "form-data": "^4.0.0",
+    "graphql": "^16.5.0",
+    "graphql-request": "^4.3.0",
     "he": "^1.2.0",
     "intl-messageformat": "^10.1.1",
     "ms": "^3.0.0-canary.1",
     "node-fetch": "^3.2.10",
+    "pino": "^7.11.0",
     "sharp": "^0.30.7",
     "squares-rng": "^2.0.0",
     "ts-toolbelt": "^9.6.0",
