@@ -15,7 +15,7 @@ export default class SweetieClient extends Client {
         this.imageCacheChannel = imageCacheChannel;
 
         this.on("interactionCreate", async interaction => {
-            // missing support for autocomplete, modals. subcommands and context menus
+            // missing support for modals, subcommands and context menus
             if(interaction.isChatInputCommand()) {
                 const command = this.#commands.collection.get(interaction.commandName);
                 if(!command) return;
@@ -31,6 +31,14 @@ export default class SweetieClient extends Client {
                     }
                     await interaction[interaction.deferred ? "editReply" : "reply"]({ content: (message ?? "There was an error while executing this command!") + " " + randomSadEmoji(), ephemeral: true });
                 } 
+            } else if(interaction.isAutocomplete()) {
+                const command = this.#commands.collection.get(interaction.commandName);
+                if(!command) return;
+                try {
+                    await command.autocomplete(interaction);
+                } catch (error) {
+                    console.error(error);                
+                }
             }
         });
     }

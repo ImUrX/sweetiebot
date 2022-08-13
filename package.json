@@ -24,6 +24,7 @@
     "@types/he": "^1.1.2",
     "@types/node": "^18.7.1",
     "@types/sharp": "^0.30.5",
+    "@types/wanakana": "^4.0.3",
     "@typescript-eslint/eslint-plugin": "^5.33.0",
     "@typescript-eslint/parser": "^5.33.0",
     "eslint": "^8.21.0",
@@ -50,6 +51,7 @@
     "squares-rng": "^2.0.0",
     "ts-toolbelt": "^9.6.0",
     "utf-8-validate": "^5.0.9",
+    "wanakana": "^5.0.2",
     "zlib-sync": "^0.1.7"
   }
 }

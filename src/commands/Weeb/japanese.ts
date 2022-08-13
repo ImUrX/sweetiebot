@@ -1,10 +1,11 @@
 import { SlashCommandBuilder, bold, hyperlink } from "@discordjs/builders";
-import { ChatInputCommandInteraction, EmbedBuilder } from "discord.js";
+import { ApplicationCommandOptionChoiceData, AutocompleteInteraction, CacheType, ChatInputCommandInteraction, EmbedBuilder } from "discord.js";
 import { Canvas } from "canvas";
 import Command from "../../lib/Command.js";
 import EmbedList from "../../util/EmbedList.js";
 import { JishoWord, words } from "../../util/jisho.js";
 import SweetieClient from "../../lib/SweetieClient.js";
+import { isHiragana, isKanji, toHiragana } from "wanakana";
 
 export default class JapaneseCommand extends Command  {
     properties = new SlashCommandBuilder()
@@ -14,8 +15,10 @@ export default class JapaneseCommand extends Command  {
             input.setName("word")
                 .setDescription("Can be a kanji, a japanese word or even an english word (Same search features as Jisho)") 
                 .setRequired(true)   
+                .setAutocomplete(true)
         );
-    async run(interaction: ChatInputCommandInteraction): Promise<unknown> {
+
+    async run(interaction: ChatInputCommandInteraction): Promise<void> {
         const word = interaction.options.getString("word", true);
         const data = await words(word);
         
@@ -26,7 +29,22 @@ export default class JapaneseCommand extends Command  {
             const embed = await JapaneseCommand.makeEmbed(data[i], this.client);
             embedList.add(embed);
         }
-        return embedList.send(interaction);
+        embedList.send(interaction);
+    }
+
+    async autocomplete(interaction: AutocompleteInteraction<CacheType>): Promise<void> {
+        const word = interaction.options.getString("word", true);
+        const choices: ApplicationCommandOptionChoiceData[] = [];
+        if(word) {
+            choices.push({ name: word, value: word });
+        }
+        /*if(isKanji(word)) {
+            choices.push({ name: `${word} #kanji`, value: `${word} #kanji` });
+        }*/
+        if(isHiragana(toHiragana(word))) {
+            choices.push({ name: `"${word}"`, value: `"${word}"` });
+        }
+        await interaction.respond(choices);
     }
 
     static async makeEmbed(data: JishoWord, client: SweetieClient): Promise<EmbedBuilder> {

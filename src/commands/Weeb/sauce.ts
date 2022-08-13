@@ -15,17 +15,26 @@ export default class SauceCommand extends Command {
             option.setName("image")
                 .setDescription("Image to reverse-lookup for")
                 .setRequired(true)
+        )
+        .addIntegerOption(option =>
+            option.setName("show")
+                .setDescription("Amount of embeds to show (defaults to 1)")
+                .setMinValue(1)
+                .setMaxValue(2)
+                .setRequired(false)
         );
 
-    async run(interaction: ChatInputCommandInteraction): Promise<unknown> {
+    async run(interaction: ChatInputCommandInteraction): Promise<void> {
         const url = interaction.options.getAttachment("image", true);
+        const show = interaction.options.getInteger("show", false);
         if(!url.contentType?.startsWith("image")) {
-            return interaction.reply({ content: `The URL isn't valid ${randomSadEmoji()}`, ephemeral: true });
+            interaction.reply({ content: `The URL isn't valid ${randomSadEmoji()}`, ephemeral: true });
+            return;
         }
-        await SauceCommand.replyTo(interaction, url.proxyURL, this.client);
+        await SauceCommand.replyTo(interaction, show ?? 1, url.proxyURL, this.client);
     }
 
-    static async replyTo(interaction: CommandInteraction, url: string, client: SweetieClient): Promise<void> {
+    static async replyTo(interaction: CommandInteraction, show: number, url: string, client: SweetieClient): Promise<void> {
         const json = await fetch(stripIndent`
         https://saucenao.com/search.php?db=999&output_type=2&numres=5&api_key=${auth.saucenao}&url=${encodeURIComponent(url)}`
         ).then(res => res.json() as Promise<SauceNAOData<unknown>>);
@@ -43,7 +52,7 @@ export default class SauceCommand extends Command {
             return;
         }
         await interaction.deferReply();
-        const embedList = new EmbedList({ time: 15000, displayAmount: 2 });
+        const embedList = new EmbedList({ time: 15000, displayAmount: show });
         for(let i = 0; i < json.results.length; i++) {
             embedList.add(
                 await SauceCommand.createEmbed(json.results[i], client)
