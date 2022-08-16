@@ -1,8 +1,8 @@
 import { stripIndent } from "common-tags";
 import { APIEmbedField, CommandInteraction, EmbedBuilder } from "discord.js";
-import SweetieClient from "../lib/SweetieClient";
-import EmbedList from "./EmbedList";
-import { randomSadEmoji, shortify } from "./util";
+import SweetieClient from "../lib/SweetieClient.js";
+import EmbedList from "./EmbedList.js";
+import { randomSadEmoji, shortify } from "./util.js";
 import auth from "../../auth.json" assert { type: "json" };
 
 export async function replyTo(interaction: CommandInteraction, show: number, url: string, client: SweetieClient): Promise<void> {

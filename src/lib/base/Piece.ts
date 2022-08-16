@@ -1,6 +1,6 @@
 import path from "path";
 import { Base } from "discord.js";
-import SweetieClient from "../SweetieClient";
+import SweetieClient from "../SweetieClient.js";
 import { P } from "pino";
 
 export type PieceOptions = {
