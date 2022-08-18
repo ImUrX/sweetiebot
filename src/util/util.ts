@@ -80,17 +80,6 @@ export async function getBuffer(img: string | Buffer, notGif = false): Promise<B
 	return buffer;
 }
 
-/**
- * Blurs an image buffer
- * @param img An image
- * @returns The blurred image
- */
-export function blurImage(img: Buffer): Promise<Buffer> {
-	return sharp(img)
-		.blur()
-		.toBuffer();
-}
-
 export interface CreateGistData {
 	url: string,
 	forks_url: string,

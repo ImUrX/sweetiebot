@@ -10,8 +10,7 @@
       "plugin:@typescript-eslint/recommended"
     ],
     "env": {
-        "node": true,
-        "es2022": true
+        "node": true
     },
     "rules": {
         "quotes": [

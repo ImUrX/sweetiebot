@@ -3,8 +3,9 @@ import { APIEmbedField, bold, CommandInteraction, EmbedBuilder } from "discord.j
 import SweetieClient from "../lib/SweetieClient.js";
 import EmbedList from "./EmbedList.js";
 import fetch from "node-fetch";
-import { blurImage, getBuffer, randomSadEmoji, shortify } from "./util.js";
+import { getBuffer, randomSadEmoji, shortify } from "./util.js";
 import auth from "../../auth.json" assert { type: "json" };
+import sharp from "sharp";
 
 export async function replyTo(interaction: CommandInteraction, show: number, url: string, client: SweetieClient): Promise<void> {
 	const json = await fetch(stripIndent`
@@ -36,7 +37,7 @@ export async function createEmbed(data: SauceNAOResult<unknown>, client: Sweetie
 		.setImage(
 			await client.uploadImage(data.header.hidden === 0 
 				? data.header.thumbnail 
-				: await blurImage(await getBuffer(data.header.thumbnail))
+				: await sharp(await getBuffer(data.header.thumbnail)).blur(20).toBuffer()
 			)
 		)
 		.setDescription(`${data.header.hidden ? `${bold("WARNING:")} Image is NSFW!\n` : ""}Similarity ${data.header.similarity}%`)

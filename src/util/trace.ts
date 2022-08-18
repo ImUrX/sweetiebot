@@ -3,7 +3,8 @@ import { bold, CommandInteraction, EmbedBuilder } from "discord.js";
 import SweetieClient from "../lib/SweetieClient.js";
 import EmbedList from "./EmbedList.js";
 import fetch from "node-fetch";
-import { blurImage, getBuffer, msToTimestamp, randomSadEmoji } from "./util.js";
+import { getBuffer, msToTimestamp, randomSadEmoji } from "./util.js";
+import sharp from "sharp";
 
 export async function replyTo(interaction: CommandInteraction, show: number, url: string, client: SweetieClient): Promise<void> {
 	const json = await fetch(stripIndent`
@@ -33,7 +34,7 @@ export async function createEmbed(data: TraceResult, client: SweetieClient): Pro
     const embed = new EmbedBuilder()
         .setImage(
             await client.uploadImage(data.anilist.isAdult
-				? await blurImage(await getBuffer(data.image))
+				? await sharp(await getBuffer(data.image)).blur(20).toBuffer()
 				: data.image
 			)
         )
