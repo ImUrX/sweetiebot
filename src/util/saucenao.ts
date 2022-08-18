@@ -3,9 +3,8 @@ import { APIEmbedField, bold, CommandInteraction, EmbedBuilder } from "discord.j
 import SweetieClient from "../lib/SweetieClient.js";
 import EmbedList from "./EmbedList.js";
 import fetch from "node-fetch";
-import { getBuffer, randomSadEmoji, shortify } from "./util.js";
+import { censorImage, getBuffer, randomSadEmoji, shortify } from "./util.js";
 import auth from "../../auth.json" assert { type: "json" };
-import sharp from "sharp";
 
 export async function replyTo(interaction: CommandInteraction, show: number, url: string, client: SweetieClient): Promise<void> {
 	const json = await fetch(stripIndent`
@@ -27,20 +26,20 @@ export async function replyTo(interaction: CommandInteraction, show: number, url
 	await interaction.deferReply();
 	const embedList = new EmbedList({ time: 15000, displayAmount: show });
 	for(const result of json.results) {
-		embedList.add(await createEmbed(result, client));
+		embedList.add(await createEmbed(result, client, interaction.channel && "nsfw" in interaction.channel ? interaction.channel.nsfw : false));
 	}
 	await embedList.send(interaction);
 }
 
-export async function createEmbed(data: SauceNAOResult<unknown>, client: SweetieClient): Promise<EmbedBuilder> {
+export async function createEmbed(data: SauceNAOResult<unknown>, client: SweetieClient, nsfw: boolean): Promise<EmbedBuilder> {
 	const res = new EmbedBuilder()
 		.setImage(
-			await client.uploadImage(data.header.hidden === 0 
+			await client.uploadImage(data.header.hidden === 0 || nsfw
 				? data.header.thumbnail 
-				: await sharp(await getBuffer(data.header.thumbnail)).blur(20).toBuffer()
+				: await censorImage(await getBuffer(data.header.thumbnail))
 			)
 		)
-		.setDescription(`${data.header.hidden ? `${bold("WARNING:")} Image is NSFW!\n` : ""}Similarity ${data.header.similarity}%`)
+		.setDescription(`Similarity ${data.header.similarity}%${data.header.hidden && !nsfw ? `\n${bold("WARNING:")} Image is NSFW so it's been censored!` : ""}`)
 		.setFooter({ text: data.header.index_name })
 		.setColor("Purple");
 
@@ -55,8 +54,9 @@ export async function createEmbed(data: SauceNAOResult<unknown>, client: Sweetie
 				.setTitle(tmp.data.title);
 			break;
 		}
-		case 21: {
-			const tmp = data as SauceNAOResult<21>;
+		case 21:
+		case 22: {
+			const tmp = data as SauceNAOResult<21 | 22>;
 			const fields: APIEmbedField[] = [];
 			if(tmp.data.part) fields.push({name: "Part:", value: tmp.data.part, inline: true});
 			fields.push({ name: "Timestamp:", value: tmp.data.est_time, inline: true });
@@ -105,8 +105,9 @@ export async function createEmbed(data: SauceNAOResult<unknown>, client: Sweetie
 		case 27:
 		case 12:
 		case 9:
-		case 16: {
-			const tmp = data as SauceNAOResult<27 | 12 | 9 | 16>;
+		case 16:
+		case 29: {
+			const tmp = data as SauceNAOResult<27 | 12 | 9 | 16 | 29>;
 			res.setTitle(tmp.data.source)
 				.setAuthor({ name: tmp.data.creator });
 			break;
@@ -177,7 +178,9 @@ export type DataType = {
 	16: SauceFAKKUData,
 	36: SauceMadokamiData,
 	12: SauceYandereData,
-	37: SauceMangadexData
+	37: SauceMangadexData,
+	22: SauceAnimeData,
+	29: SauceE621Data
 }
 
 interface TitledData {
@@ -297,7 +300,34 @@ export type SauceYandereData = {
 	danbooru_id?: number
 }
 
-export type SauceDanbooruData = SauceYandereData
+export type SauceDanbooruData = {
+	/**
+	 * A URL sometimes
+	 */
+	source: string,
+	characters: string,
+	material: string,
+	creator: string,
+	"anime-pictures_id"?: number,
+	gelbooru_id?: number,
+	yandere_id?: number,
+	danbooru_id: number
+}
+
+export type SauceE621Data = {
+	/**
+	 * A URL sometimes
+	 */
+	source: string,
+	characters: string,
+	material: string,
+	creator: string,
+	e621_id: number,
+	"anime-pictures_id"?: number,
+	gelbooru_id?: number,
+	yandere_id?: number,
+	danbooru_id?: number
+}
 
 export type SauceKemonoData = {
 	published: string,

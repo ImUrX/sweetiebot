@@ -80,6 +80,19 @@ export async function getBuffer(img: string | Buffer, notGif = false): Promise<B
 	return buffer;
 }
 
+export async function censorImage(img: Buffer): Promise<Buffer> {
+	const metadata = await sharp(img).metadata();
+	const smol = await sharp(img)
+		.resize(18, null, { kernel: sharp.kernel.nearest })
+		.toBuffer();
+	return sharp(smol)
+		.resize({
+			width: metadata.width,
+			kernel: sharp.kernel.nearest
+		})
+		.toBuffer();
+}
+
 export interface CreateGistData {
 	url: string,
 	forks_url: string,

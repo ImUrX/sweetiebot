@@ -3,8 +3,7 @@ import { bold, CommandInteraction, EmbedBuilder } from "discord.js";
 import SweetieClient from "../lib/SweetieClient.js";
 import EmbedList from "./EmbedList.js";
 import fetch from "node-fetch";
-import { getBuffer, msToTimestamp, randomSadEmoji } from "./util.js";
-import sharp from "sharp";
+import { censorImage, getBuffer, msToTimestamp, randomSadEmoji } from "./util.js";
 
 export async function replyTo(interaction: CommandInteraction, show: number, url: string, client: SweetieClient): Promise<void> {
 	const json = await fetch(stripIndent`
@@ -24,17 +23,17 @@ export async function replyTo(interaction: CommandInteraction, show: number, url
     await interaction.deferReply();
 	const embedList = new EmbedList({ time: 15000, displayAmount: show });
 	for(const result of json.result) {
-		embedList.add(await createEmbed(result, client));
+		embedList.add(await createEmbed(result, client, interaction.channel && "nsfw" in interaction.channel ? interaction.channel.nsfw : false));
 	}
 	await embedList.send(interaction);
 }
 
-export async function createEmbed(data: TraceResult, client: SweetieClient): Promise<EmbedBuilder> {
+export async function createEmbed(data: TraceResult, client: SweetieClient, nsfw: boolean): Promise<EmbedBuilder> {
     if(typeof data.anilist === "number") throw "createEmbed() doesn't support non-anilist included results";
     const embed = new EmbedBuilder()
         .setImage(
-            await client.uploadImage(data.anilist.isAdult
-				? await sharp(await getBuffer(data.image)).blur(20).toBuffer()
+            await client.uploadImage(data.anilist.isAdult && !nsfw
+				? await censorImage(await getBuffer(data.image))
 				: data.image
 			)
         )
@@ -51,7 +50,7 @@ export async function createEmbed(data: TraceResult, client: SweetieClient): Pro
             }
         );
     if(data.anilist.isAdult) {
-        embed.setDescription(`${bold("WARNING:")} Anime is NSFW!`);
+        embed.setDescription(`${bold("WARNING:")} Image is NSFW so it's been censored!`);
     }
     return embed;
 }
