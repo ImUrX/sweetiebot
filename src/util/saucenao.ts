@@ -1,43 +1,47 @@
 import { stripIndent } from "common-tags";
-import { APIEmbedField, CommandInteraction, EmbedBuilder } from "discord.js";
+import { APIEmbedField, bold, CommandInteraction, EmbedBuilder } from "discord.js";
 import SweetieClient from "../lib/SweetieClient.js";
 import EmbedList from "./EmbedList.js";
-import { randomSadEmoji, shortify } from "./util.js";
+import { blurImage, getBuffer, randomSadEmoji, shortify } from "./util.js";
 import auth from "../../auth.json" assert { type: "json" };
 
 export async function replyTo(interaction: CommandInteraction, show: number, url: string, client: SweetieClient): Promise<void> {
 	const json = await fetch(stripIndent`
-	https://saucenao.com/search.php?db=999&output_type=2&numres=5&api_key=${auth.saucenao}&url=${encodeURIComponent(url)}`
+	https://saucenao.com/search.php?db=999&output_type=2&numres=5&hide=3&api_key=${auth.saucenao}&url=${encodeURIComponent(url)}`
 	).then(res => res.json() as Promise<SauceNAOData<unknown>>);
 
 	if(json.header.status > 0 && !json.results.length) {
-		interaction.reply({ content: `It seems SauceNAO is having some problems (code ${json.header.status})`, ephemeral: true });
+		await interaction.reply({ content: `It seems SauceNAO is having some problems ${randomSadEmoji()} (code: ${json.header.status})`, ephemeral: true });
 		return;
 	}
 	if(json.header.status < 0) {
 		if(json.header.status === -3) {
-			interaction.reply({ content: `The URL isn't a supported image by SauceNAO ${randomSadEmoji()}`, ephemeral: true });
+			await interaction.reply({ content: `The URL isn't a supported image by SauceNAO ${randomSadEmoji()}`, ephemeral: true });
 			return;
 		}
-		interaction.reply({ content: `It seems someone in here did something wrong ${randomSadEmoji()} (code ${json.header.status})`, ephemeral: true });
+		await interaction.reply({ content: `It seems someone in here did something wrong ${randomSadEmoji()} (code ${json.header.status})`, ephemeral: true });
 		return;
 	}
 	await interaction.deferReply();
 	const embedList = new EmbedList({ time: 15000, displayAmount: show });
-	for(let i = 0; i < json.results.length; i++) {
-		embedList.add(
-			await createEmbed(json.results[i], client)
-		);
+	for(const result of json.results) {
+		embedList.add(await createEmbed(result, client));
 	}
 	await embedList.send(interaction);
 }
 
 export async function createEmbed(data: SauceNAOResult<unknown>, client: SweetieClient): Promise<EmbedBuilder> {
 	const res = new EmbedBuilder()
-		.setImage(await client.uploadImage(data.header.thumbnail))
-		.setDescription(`Similarity ${data.header.similarity}%`)
+		.setImage(
+			await client.uploadImage(data.header.hidden === 0 
+				? data.header.thumbnail 
+				: await blurImage(await getBuffer(data.header.thumbnail))
+			)
+		)
+		.setDescription(`${data.header.hidden ? `${bold("WARNING:")} Image is NSFW!\n` : ""}Similarity ${data.header.similarity}%`)
 		.setFooter({ text: data.header.index_name })
 		.setColor("Purple");
+
 	if(data.data.ext_urls && data.data.ext_urls.length > 0) {
 		res.setURL(data.data.ext_urls[0]);
 	}
@@ -144,7 +148,8 @@ type SauceNAOResult<T extends keyof DataType | unknown> = {
 		thumbnail: string,
 		index_id: keyof DataType,
 		index_name: string,
-		dupes: number
+		dupes: number,
+		hidden: number
 	},
 	data: {
 		ext_urls?: string[],

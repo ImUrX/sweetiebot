@@ -3,6 +3,7 @@ import sharp from "sharp";
 import he from "he";
 import FormData from "form-data";
 import auth from "../../auth.json" assert { type: "json" };
+import moment from "moment";
 /**
  * A Map with magic numbers of supported images for sharp
  */
@@ -77,6 +78,17 @@ export async function getBuffer(img: string | Buffer, notGif = false): Promise<B
 	if(!type) throw "This isn't an image";
 	if(type === "gif" && notGif) buffer = await sharp(buffer).toBuffer();
 	return buffer;
+}
+
+/**
+ * Blurs an image buffer
+ * @param img An image
+ * @returns The blurred image
+ */
+export function blurImage(img: Buffer): Promise<Buffer> {
+	return sharp(img)
+		.blur()
+		.toBuffer();
 }
 
 export interface CreateGistData {
@@ -211,4 +223,16 @@ export function getAllStringsOfObject(obj: object): string[] {
 const tokens = new RegExp(getAllStringsOfObject(auth).filter(s => s).join("|"), "g");
 export function censorTokens(text: string): string {
 	return text.replace(tokens, "□");
+}
+
+const order: ["hours", "minutes", "seconds"] = ["hours", "minutes", "seconds"];
+export function msToTimestamp(ms: number): string {
+	const duration = moment.duration(ms);
+	const arr = [];
+	for(const type of order) {
+		if(duration[type]()) {
+			arr.push( duration[type]().toString().padStart(2, "0"));
+		}
+	}
+	return arr.join(":");
 }
