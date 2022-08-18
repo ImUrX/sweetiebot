@@ -54,7 +54,7 @@ export default class SauceCommand extends Command {
 				await naoReplyTo(interaction, show ?? 1, url.proxyURL, this.client);
 				break;
 			case "tracemoe":
-				await traceReplyTo(interaction, show ?? 1, url.proxyURL, this.client);
+				await traceReplyTo(interaction, show ?? 1, url, this.client);
 		}
 	}
 }

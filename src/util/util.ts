@@ -73,10 +73,8 @@ export function grabIdFromKawaii(url: string): string {
  */
 export async function getBuffer(img: string | Buffer, notGif = false): Promise<Buffer> {
 	let buffer = Buffer.isBuffer(img) ? img : Buffer.from(await fetch(img).then(res => res.arrayBuffer()));
-	const type = getImageType(buffer);
 
-	if(!type) throw "This isn't an image";
-	if(type === "gif" && notGif) buffer = await sharp(buffer).toBuffer();
+	if(notGif) buffer = await sharp(buffer).toBuffer();
 	return buffer;
 }
 

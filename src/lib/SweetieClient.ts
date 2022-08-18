@@ -26,7 +26,7 @@ export default class SweetieClient extends Client {
 				try {
 					await command.run(interaction);
 				} catch (error) {
-					console.error(error);
+					SweetieClient.LOGGER.error(`Error when executing ${interaction.commandName} in #${interaction.channelId} with @${interaction.user.id}`, error);
 					let message: string | null = null;
 					if(error instanceof Error) {
 						message = censorTokens(error.message);
