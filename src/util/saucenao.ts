@@ -2,6 +2,7 @@ import { stripIndent } from "common-tags";
 import { APIEmbedField, bold, CommandInteraction, EmbedBuilder } from "discord.js";
 import SweetieClient from "../lib/SweetieClient.js";
 import EmbedList from "./EmbedList.js";
+import fetch from "node-fetch";
 import { blurImage, getBuffer, randomSadEmoji, shortify } from "./util.js";
 import auth from "../../auth.json" assert { type: "json" };
 

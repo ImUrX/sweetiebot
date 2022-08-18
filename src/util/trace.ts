@@ -2,6 +2,7 @@ import { stripIndent } from "common-tags";
 import { bold, CommandInteraction, EmbedBuilder } from "discord.js";
 import SweetieClient from "../lib/SweetieClient.js";
 import EmbedList from "./EmbedList.js";
+import fetch from "node-fetch";
 import { blurImage, getBuffer, msToTimestamp, randomSadEmoji } from "./util.js";
 
 export async function replyTo(interaction: CommandInteraction, show: number, url: string, client: SweetieClient): Promise<void> {
