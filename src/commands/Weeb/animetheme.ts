@@ -1,5 +1,6 @@
-import { ChatInputCommandInteraction, SlashCommandBuilder, AutocompleteInteraction } from "discord.js";
+import { ChatInputCommandInteraction, SlashCommandBuilder, AutocompleteInteraction, bold } from "discord.js";
 import Command from "../../lib/Command.js";
+import { randomSadEmoji } from "../../util/util.js";
 
 export default class AnimeThemesCommand extends Command {
 	properties = new SlashCommandBuilder()
@@ -14,7 +15,24 @@ export default class AnimeThemesCommand extends Command {
 
 	async run(interaction: ChatInputCommandInteraction): Promise<void> {
 		const query = interaction.options.getString("query", true);
-		interaction.reply(query.startsWith("\0").toString());
+
+		let id: string;
+		if(query.startsWith("\0")) {
+			id = query.substring(1);
+		} else {
+			const possible = (await this.searchTheme(query, 1))[0];
+			if(!possible) {
+				interaction.reply({ content: "Couldn't find the anime theme " + randomSadEmoji(), ephemeral: true });
+				return;
+			}
+			id = possible.theme_id;
+		}
+
+		const info = (await this.getVideo(id))[0];
+		let prelude = "";
+		if(info.title) prelude += bold(info.title);
+		if(info.name) prelude += ` from ${info.name}`;
+		interaction.reply(`${prelude}\nhttps://v.animethemes.moe/${info.basename}`);
 	}
 
 	async autocomplete(interaction: AutocompleteInteraction): Promise<void> {
@@ -34,15 +52,41 @@ export default class AnimeThemesCommand extends Command {
 		}));
 	}
 
-	async searchTheme(query: string): Promise<{
+	async getVideo(themeId: string): Promise<{
+		title?: string,
+		basename: string,
+		name: string,
+		as?: string
+	}[]> {
+		const res = await this.client.mysql<AnimeThemeEntry>("anime_theme_entries")
+			.innerJoin<AnimeTheme>("anime_themes", "anime_theme_entries.theme_id", "anime_themes.theme_id")
+			.innerJoin<AnimeThemeEntryVideo>("anime_theme_entry_video", "anime_theme_entry_video.entry_id", "anime_theme_entries.entry_id")
+			.innerJoin<Video>("videos", "anime_theme_entry_video.video_id", "videos.video_id")
+			.leftJoin<Song>("songs", "songs.song_id", "anime_themes.song_id")
+			.leftJoin<ArtistSong>("artist_song", "songs.song_id", "artist_song.song_id")
+			.leftJoin<Artist>("artists", "artist_song.artist_id", "artists.artist_id")
+			.select("*")
+			.orderBy("resolution", "desc", "last")
+			.where("anime_theme_entries.theme_id", themeId);
+		return res;
+	}
+
+	async searchTheme(query: string, limit = 25): Promise<{
 		theme_id: string;
 		name: string;
 		slug: string;
-		title: string | undefined;
+		title?: string;
 	}[]> {
 		query = query.toUpperCase();
 		const split = query.split(" ");
-		const res = await this.client.mysql<AnimeTheme>("anime_themes")
+		const whichIndex = split.findIndex(x => (x.startsWith("OP") || x.startsWith("ED")) && (!isNaN(parseInt(x.substring(2))) || !x.substring(2)));
+		let which: string[] = [""];
+		if(whichIndex >= 0) {
+			which = split.splice(whichIndex, 1);
+		}
+		const joined = split.join(" ");
+
+		const knexQuery = (relevance: number) => this.client.mysql<AnimeTheme>("anime_themes")
 			.innerJoin<Anime>("anime", "anime.anime_id", "anime_themes.anime_id")
 			.leftJoin<AnimeSynonym>("anime_synonyms", "anime.anime_id", "anime_synonyms.anime_id")
 			.leftJoin<Song>("songs", "songs.song_id", "anime_themes.song_id")
@@ -50,11 +94,18 @@ export default class AnimeThemesCommand extends Command {
 				this.client.mysql.ref("theme_id").withSchema("anime_themes"),
 				this.client.mysql.ref("name").withSchema("anime"),
 				this.client.mysql.ref("slug").withSchema("anime_themes"),
-				this.client.mysql.ref("title").withSchema("songs")
-			)
-			.whereRaw(`match(anime.name) against(${split.map(() => "?").join(", ")})`, [...split])
-			.orWhereRaw(`match(songs.title) against(${split.map(() => "?").join(", ")})`, [...split])
-			.orWhereRaw(`match(anime_themes.slug) against(${split.map(() => "?").join(", ")})`, [...split]);
+				this.client.mysql.ref("title").withSchema("songs"),
+				this.client.mysql.raw("? as ??", [relevance, "$relevance"])
+			);
+		const res = await knexQuery(1)
+			.whereILike("anime.name", `%${joined}%`)
+			.andWhereILike("anime_themes.slug", `%${which[0]}%`)
+			.orWhereILike("songs.title", `%${joined}%`)
+			.andWhereILike("anime_themes.slug", `%${which[0]}%`)
+			.orWhereILike("anime_synonyms.text", `%${joined}%`)
+			.andWhereILike("anime_themes.slug", `%${which[0]}%`)
+			.orderBy("$relevance")
+			.limit(limit);
 		return res;
 	}
 }
