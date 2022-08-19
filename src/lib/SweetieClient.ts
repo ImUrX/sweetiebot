@@ -32,7 +32,7 @@ export default class SweetieClient extends Client {
 		this.imageCacheChannel = imageCacheChannel;
 
 		this.on("interactionCreate", async interaction => {
-			// missing support for modals, subcommands and context menus
+			//TODO: missing support for modals and context menus
 			if(interaction.isChatInputCommand()) {
 				const command = this.#commands.collection.get(interaction.commandName);
 				if(!command) return;
@@ -66,6 +66,7 @@ export default class SweetieClient extends Client {
 
 	async login(token: string, applicationId = ""): Promise<string> {
 		await this.#commands.init();
+		//TODO: doesn't delete no longer existing commands
 		await this.#rest
 			.setToken(token)
 			.put(
