@@ -5,7 +5,7 @@ import { randomSadEmoji } from "../../util/util.js";
 export default class AnimeThemesCommand extends Command {
 	properties = new SlashCommandBuilder()
 		.setName(this.name)
-		.setDescription("Searches for an anime theme (opening/ending)")
+		.setDescription("Searches for an anime opening or ending")
 		.addStringOption(option =>
 			option.setName("query")
 				.setDescription("Theme to look for")
