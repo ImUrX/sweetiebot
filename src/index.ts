@@ -1,13 +1,12 @@
 import { GatewayIntentBits } from "discord.js";
 import fs from "fs/promises";
 import path from "path";
-import canvas from "canvas";
+import { registerFont } from "canvas";
 import Client from "./lib/SweetieClient.js";
 import auth from "../auth.json" assert { type: "json" };
 const validFontTypes = [
 	".ttc", ".ttf", ".otf"
 ];
-
 
 const client = new Client({
 	intents: [GatewayIntentBits.Guilds]
@@ -35,7 +34,7 @@ async function loadFonts() {
 			for(const file of files) {
 				if(!validFontTypes.includes(path.extname(file))) continue;
 				const info = file.split("-");
-				canvas.registerFont(path.join(fontsFolder, dir, file), {
+				registerFont(path.join(fontsFolder, dir, file), {
 					family: dir,
 					weight: info[1] || "regular",
 					style: info[2] || "regular"

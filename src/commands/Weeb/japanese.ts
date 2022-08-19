@@ -1,5 +1,5 @@
 import { SlashCommandBuilder, bold, hyperlink } from "@discordjs/builders";
-import { ApplicationCommandOptionChoiceData, AutocompleteInteraction, CacheType, ChatInputCommandInteraction, EmbedBuilder } from "discord.js";
+import { ApplicationCommandOptionChoiceData, AutocompleteInteraction, ChatInputCommandInteraction, EmbedBuilder } from "discord.js";
 import { Canvas } from "canvas";
 import Command from "../../lib/Command.js";
 import EmbedList from "../../util/EmbedList.js";
@@ -32,8 +32,12 @@ export default class JapaneseCommand extends Command  {
 		embedList.send(interaction);
 	}
 
-	async autocomplete(interaction: AutocompleteInteraction<CacheType>): Promise<void> {
-		const word = interaction.options.getString("word", true);
+	async autocomplete(interaction: AutocompleteInteraction): Promise<void> {
+		const word = interaction.options.getString("word");
+		if(word === null) {
+			await interaction.respond([]);
+			return;
+		}
 		const choices: ApplicationCommandOptionChoiceData[] = [];
 		if(word) {
 			choices.push({ name: word, value: word });

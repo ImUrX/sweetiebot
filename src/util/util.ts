@@ -4,6 +4,7 @@ import he from "he";
 import FormData from "form-data";
 import auth from "../../auth.json" assert { type: "json" };
 import moment from "moment";
+
 /**
  * A Map with magic numbers of supported images for sharp
  */
