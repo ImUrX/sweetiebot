@@ -7,12 +7,13 @@
   "author": "ImUrX <urielfontan2002@gmail.com>",
   "license": "MIT",
   "engines": {
-    "node": ">=16.6"
+    "node": ">=16.16"
   },
   "type": "module",
   "scripts": {
     "genSchemas": "npx get-graphql-schema \"https://graphql.anilist.co/\" -j | tee assets/schemas/anilist.json",
     "getFonts": "chmod +x ./getFonts.sh && ./getFonts.sh",
+    "updateDump": "node --experimental-json-modules updatedump.js",
     "compile": "tsc -p ./",
     "lint": "eslint src --ext ts",
     "watch": "tsc -watch -p ./",
@@ -50,8 +51,10 @@
     "graphql-request": "^4.3.0",
     "he": "^1.2.0",
     "intl-messageformat": "^10.1.1",
+    "knex": "^2.2.0",
     "moment": "^2.29.4",
     "ms": "^3.0.0-canary.1",
+    "mysql2": "^2.3.3",
     "node-fetch": "^3.2.10",
     "pino": "^7.11.0",
     "sharp": "^0.30.7",

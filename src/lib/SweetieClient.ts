@@ -5,6 +5,8 @@ import Store from "./base/Store.js";
 import Command from"./Command.js";
 import { censorTokens, getBuffer, randomSadEmoji } from "../util/util.js";
 import pino from "pino";
+import knex from "knex";
+import auth from "../../auth.json" assert { type: "json" };
 
 export default class SweetieClient extends Client {
 	static LOGGER = pino({
@@ -13,6 +15,17 @@ export default class SweetieClient extends Client {
 	#commands: Store<Command> = new Store(this, "./commands/", true);
 	#rest = new REST({ version: "10" });
 	imageCacheChannel: string;
+	/**
+	 * Mainly used for importing external DBs more than the bot itself
+	 */
+	mysql = knex({
+		client: "mysql2",
+		connection: {
+			supportBigNumbers: true,
+			bigNumberStrings: true,
+			...auth.mysql
+		},
+	});
 
 	constructor(options: ClientOptions, imageCacheChannel: string) {
 		super(options);
