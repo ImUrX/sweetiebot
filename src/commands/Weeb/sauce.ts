@@ -10,7 +10,7 @@ export default class SauceCommand extends Command {
 		.setDescription("Searches the image's original source")
 		.addSubcommand(sub => 
 			sub.setName("saucenao")
-				.setDescription("Uses the SauceNAO provider")
+				.setDescription("Searches the image's source with SauceNAO")
 				.addAttachmentOption(option =>
 					option.setName("image")
 						.setDescription("Image to reverse-lookup for")
@@ -26,7 +26,7 @@ export default class SauceCommand extends Command {
 		)
 		.addSubcommand(sub => 
 			sub.setName("tracemoe")
-				.setDescription("Uses the trace.moe provider")
+				.setDescription("Searches the image's source with trace.moe")
 				.addAttachmentOption(option =>
 					option.setName("image")
 						.setDescription("Image to reverse-lookup for")

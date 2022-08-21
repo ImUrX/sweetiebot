@@ -23,6 +23,7 @@ export default class SweetieClient extends Client {
 		connection: {
 			supportBigNumbers: true,
 			bigNumberStrings: true,
+			keepAlive: true,
 			...auth.mysql
 		},
 	});
@@ -39,7 +40,8 @@ export default class SweetieClient extends Client {
 				try {
 					await command.run(interaction);
 				} catch (error) {
-					SweetieClient.LOGGER.error(`Error when executing ${interaction.commandName} in #${interaction.channelId} with @${interaction.user.id}`, error);
+					SweetieClient.LOGGER.error(`Error when executing ${interaction.commandName} in #${interaction.channelId} with @${interaction.user.id}`);
+					SweetieClient.LOGGER.error(error);
 					let message: string | null = null;
 					if(error instanceof Error) {
 						message = censorTokens(error.message);

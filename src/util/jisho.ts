@@ -13,7 +13,7 @@ export async function words(keyword: string): Promise<JishoWord[]> {
 	const api = fetch(`https://jisho.org/api/v1/search/words?keyword=${encodeURIComponent(keyword)}`)
 		.then(async res => {
 			const json = await res.json() as JishoResult;
-			if(json.data.length === 0) throw new Error("Unexpected end of data in response.");
+			if(json.data.length === 0) throw new Error("Couldn't find the word you were searching for!");
 			if(json.meta.status !== 200) throw new Error("Status code non-successful: " + json.meta.status);
 			return json.data;
 		});

@@ -124,8 +124,9 @@ export async function createEmbed(data: SauceNAOResult<unknown>, client: Sweetie
 				.setAuthor({ name: tmp.data.user_name });
 			break;
 		}
-		case 37: {
-			const tmp = data as SauceNAOResult<37>;
+		case 37:
+		case 371: {
+			const tmp = data as SauceNAOResult<37 | 371>;
 			res.setTitle(tmp.data.source)
 				.setAuthor({ name: `${tmp.data.author}${tmp.data.author.includes(tmp.data.artist) ? "" : `, ${tmp.data.artist}`}`})
 				.addFields({name: "Part:", value: tmp.data.part, inline: true});
@@ -180,7 +181,8 @@ export type DataType = {
 	12: SauceYandereData,
 	37: SauceMangadexData,
 	22: SauceAnimeData,
-	29: SauceE621Data
+	29: SauceE621Data,
+	371: SauceMangadexData
 }
 
 interface TitledData {
