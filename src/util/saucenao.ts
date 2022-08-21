@@ -108,7 +108,7 @@ export async function createEmbed(data: SauceNAOResult<unknown>, client: Sweetie
 		case 16:
 		case 29: {
 			const tmp = data as SauceNAOResult<27 | 12 | 9 | 16 | 29>;
-			res.setTitle(tmp.data.source)
+			res.setTitle(tmp.data.source ?? "unknown source")
 				.setAuthor({ name: tmp.data.creator });
 			break;
 		}
