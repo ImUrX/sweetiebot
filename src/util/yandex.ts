@@ -1,13 +1,29 @@
-import { stripIndent } from "common-tags";
-import { CommandInteraction } from "discord.js";
+import { CommandInteraction, EmbedBuilder } from "discord.js";
 import FormData from "form-data";
 import { decode } from "he";
 import { request } from "undici";
 import SweetieClient from "../lib/SweetieClient.js";
 import EmbedList from "./EmbedList.js";
-import { randomSadEmoji } from "./util";
 
 export async function replyTo(interaction: CommandInteraction, show: number, url: string, client: SweetieClient): Promise<void> {
+    interaction.deferReply();
+    const buffer = await request(url).then(res => res.body.arrayBuffer());
+    const res = await getResponse(Buffer.from(buffer));
+    const embedList = new EmbedList({ time: 15000, displayAmount: show });
+    for(const data of res.sites) {
+        embedList.add(await createEmbed(data, client));
+    }
+    await embedList.send(interaction);
+}
+
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+export async function createEmbed(data: SiteData, _client: SweetieClient): Promise<EmbedBuilder> {
+    return new EmbedBuilder()
+        .setTitle(data.title)
+        .setDescription(data.description)
+        .setImage(data.originalImage.url)
+        .setURL(data.url)
+        .setColor("Red");
 }
 
 const searchUrl = "https://yandex.ru/images/search";
@@ -43,17 +59,25 @@ export type UploadResponse = {
         },
         html: string
     }[]
-}
+};
+
+export type ImageData = {
+    url: string,
+    height: number,
+    width: number
+};
+
+export type SiteData = {
+    title: string,
+    description: string,
+    url: string,
+    domain: string,
+    thumb: ImageData,
+    originalImage: ImageData
+};
 
 export type SiteResponse = {
-    sites: {
-        title: string,
-        description: string,
-        url: string,
-        domain: string,
-        thumb: ImageData,
-        originalImage: ImageData
-    }[],
+    sites: SiteData[],
     pageSize: number,
     loadedPagesCount: number,
     faviconSpriteSeed: string,
@@ -67,10 +91,4 @@ export type SiteResponse = {
     },
     lazyThumbsFromIndex: number,
     title: string
-}
-
-export type ImageData = {
-    url: string,
-    height: number,
-    width: number
-}
+};

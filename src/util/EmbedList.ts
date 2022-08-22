@@ -1,7 +1,9 @@
-import { ActionRowBuilder, ButtonBuilder, CommandInteraction, ButtonStyle, EmbedBuilder, InteractionReplyOptions, ComponentType } from "discord.js";
+import { ActionRowBuilder, ButtonBuilder, CommandInteraction, ButtonStyle, EmbedBuilder, InteractionReplyOptions, ComponentType, AttachmentBuilder } from "discord.js";
 
 export default class EmbedList {
 	embeds: EmbedBuilder[] = [];
+	#attachments: AttachmentBuilder[][] = [];
+	#memoize: (() => AttachmentBuilder[])[] = [];
 	actionRow = new ActionRowBuilder<ButtonBuilder>();
 	index = 0;
 	options = {
@@ -31,6 +33,37 @@ export default class EmbedList {
 
 	add(...embeds: EmbedBuilder[]): void {
 		this.embeds.push(...embeds);
+		this.#attachments.push(...Array(embeds.length).fill([]));
+	}
+
+	addWithAttachment(...data: [EmbedBuilder, AttachmentBuilder[]][]) {
+		for(const tuple of data) {
+			this.embeds.push(tuple[0]);
+			this.#attachments.push(tuple[1]);
+		}
+	}
+
+	addWithMemoize(...data: [EmbedBuilder, () => AttachmentBuilder[]][]) {
+		for(const tuple of data) {
+			this.#memoize[this.embeds.length] = tuple[1];
+			this.embeds.push(tuple[0]);
+		}
+	}
+
+	getAttachment(i: number): AttachmentBuilder[] {
+		if(this.#attachments[i]) return this.#attachments[i];
+		const memo = this.#memoize[i];
+		if(!memo) return [];
+		this.#attachments[i] = memo();
+		return this.#attachments[i];
+	}
+
+	getAttachmentRange(start: number, end: number): AttachmentBuilder[] {
+		const attachments = [];
+		for(let i = start; i < end; i++) {
+			attachments.push(this.getAttachment(i));
+		}
+		return attachments.flat();
 	}
 
 	async send(
@@ -45,6 +78,7 @@ export default class EmbedList {
 		}
 		const msg = await interaction[interaction.deferred ? "editReply" : "reply"]({
 			embeds: this.embeds.slice(this.index, this.index + this.options.displayAmount),
+			files: this.getAttachmentRange(this.index, this.index + this.options.displayAmount),
 			components: [this.actionRow],
 			...interactionOptions
 		});
@@ -65,7 +99,11 @@ export default class EmbedList {
 				if(this.index < this.embeds.length) this.actionRow.components[1].setDisabled(false);
 				if(this.index <= 0) this.actionRow.components[0].setDisabled(true);
 			}
-			await i.update({ embeds: this.embeds.slice(this.index, this.index + this.options.displayAmount), components: [this.actionRow] });
+			await i.update({
+				embeds: this.embeds.slice(this.index, this.index + this.options.displayAmount),
+				files: this.getAttachmentRange(this.index, this.index + this.options.displayAmount),
+				components: [this.actionRow]
+			});
 		});
 
 		collector.on("end", async () => {
