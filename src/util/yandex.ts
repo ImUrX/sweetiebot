@@ -31,7 +31,8 @@ export async function getResponse(image: Buffer): Promise<SiteResponse> {
     const formData = new FormData();
     formData.append("upfile", image);
     const upload = await fetch(`${searchUrl}?rpt=imageview&format=json&request=${encodeURIComponent("{\"blocks\":[{\"block\":\"b-page_type_search-by-image__link\"}]}")}`, {
-        body: formData
+        body: formData,
+        method: "POST"
     }).then(res => res.json()) as UploadResponse;
     
     if(!upload.blocks[0]) {
@@ -44,6 +45,7 @@ export async function getResponse(image: Buffer): Promise<SiteResponse> {
         
         if(!match) {
             SweetieClient.LOGGER.error(body);
+            SweetieClient.LOGGER.error(`${searchUrl}?${upload.blocks[0].params.url}`);
             throw new Error("Couldn't find the data-state from Yandex");
         }
 
