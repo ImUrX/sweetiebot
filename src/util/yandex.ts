@@ -18,12 +18,13 @@ export async function replyTo(interaction: CommandInteraction, show: number, url
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 export async function createEmbed(data: SiteData, _client: SweetieClient): Promise<EmbedBuilder> {
-    return new EmbedBuilder()
+    const embed = new EmbedBuilder()
         .setTitle(data.title)
-        .setDescription(data.description)
         .setImage(data.originalImage.url)
         .setURL(data.url)
         .setColor("Red");
+    if(data.description) embed.setDescription(data.description);
+    return embed;
 }
 
 const searchUrl = "https://yandex.ru/images/search";
