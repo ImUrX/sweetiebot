@@ -31,7 +31,7 @@ const searchUrl = "https://yandex.ru/images/search";
 export async function getResponse(image: Buffer): Promise<SiteResponse> {
     const formData = new FormData();
     formData.append("upfile", await sharp(image).toFormat("jpg").toBuffer());
-    const upload = await request(`${searchUrl}?rpt=imageview&format=json&request=${encodeURIComponent("{\"blocks\":[{\"block\":\"b-page_type_search-by-image__link\"}]}\")}")}`, {
+    const upload = await request(`${searchUrl}?rpt=imageview&format=json&request=${encodeURIComponent("{\"blocks\":[{\"block\":\"b-page_type_search-by-image__link\"}]}")}`, {
         body: formData
     }).then(res => res.body.json()) as UploadResponse;
     
