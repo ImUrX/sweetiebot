@@ -48,8 +48,8 @@ export default class EmbedList {
 			components: [this.actionRow],
 			...interactionOptions
 		});
-		if(!interaction.channel) throw new TypeError("There is no channel in the interaction");
-		const collector = interaction.channel.createMessageComponentCollector({
+		if(!interaction.channel || !interaction.user.dmChannel) throw new TypeError("There is no channel in the interaction");
+		const collector = (interaction.channel ?? interaction.user.dmChannel).createMessageComponentCollector({
 			filter: i => i.message.id === msg.id && ["back", "next"].includes(i.customId) && i.user.id === interaction.user.id,
 			time: (this.options.time || 0) * this.embeds.length,
 			componentType: ComponentType.Button
