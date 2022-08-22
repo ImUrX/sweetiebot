@@ -3,6 +3,7 @@ import { randomSadEmoji } from "../../util/util.js";
 import Command from "../../lib/Command.js";
 import { replyTo as naoReplyTo } from "../../util/saucenao.js";
 import { replyTo as traceReplyTo } from "../../util/trace.js";
+import { replyTo as yandexReplyto } from "../../util/yandex.js";
 
 export default class SauceCommand extends Command {
 	properties = new SlashCommandBuilder()
@@ -39,6 +40,22 @@ export default class SauceCommand extends Command {
 						.setMaxValue(2)
 						.setRequired(false)
 				)
+		)
+		.addSubcommand(sub => 
+			sub.setName("yandex")
+				.setDescription("Searches the image's source with Yandex")
+				.addAttachmentOption(option =>
+					option.setName("image")
+						.setDescription("Image to reverse-lookup for")
+						.setRequired(true)
+				)
+				.addIntegerOption(option =>
+					option.setName("show")
+						.setDescription("Amount of embeds to show (defaults to 1)")
+						.setMinValue(1)
+						.setMaxValue(2)
+						.setRequired(false)
+				)
 		);
 
 	async run(interaction: ChatInputCommandInteraction): Promise<void> {
@@ -55,6 +72,9 @@ export default class SauceCommand extends Command {
 				break;
 			case "tracemoe":
 				await traceReplyTo(interaction, show ?? 1, url, this.client);
+				break;
+			case "yandex":
+				await yandexReplyto(interaction, show ?? 1, url.proxyURL, this.client);
 		}
 	}
 }
