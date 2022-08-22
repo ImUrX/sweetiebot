@@ -1,14 +1,12 @@
 import { CommandInteraction, EmbedBuilder } from "discord.js";
-import FormData from "form-data";
 import he from "he";
-import sharp from "sharp";
-import { request } from "undici";
+import { fetch, FormData } from "undici";
 import SweetieClient from "../lib/SweetieClient.js";
 import EmbedList from "./EmbedList.js";
 
 export async function replyTo(interaction: CommandInteraction, show: number, url: string, client: SweetieClient): Promise<void> {
     interaction.deferReply();
-    const buffer = await request(url).then(res => res.body.arrayBuffer());
+    const buffer = await fetch(url).then(res => res.arrayBuffer());
     const res = await getResponse(Buffer.from(buffer));
     const embedList = new EmbedList({ time: 15000, displayAmount: show });
     for(const data of res.sites) {
@@ -31,17 +29,17 @@ const searchUrl = "https://yandex.ru/images/search";
 
 export async function getResponse(image: Buffer): Promise<SiteResponse> {
     const formData = new FormData();
-    formData.append("upfile", await sharp(image).toFormat("jpg").toBuffer());
-    const upload = await request(`${searchUrl}?rpt=imageview&format=json&request=${encodeURIComponent("{\"blocks\":[{\"block\":\"b-page_type_search-by-image__link\"}]}")}`, {
+    formData.append("upfile", image);
+    const upload = await fetch(`${searchUrl}?rpt=imageview&format=json&request=${encodeURIComponent("{\"blocks\":[{\"block\":\"b-page_type_search-by-image__link\"}]}")}`, {
         body: formData
-    }).then(res => res.body.json()) as UploadResponse;
+    }).then(res => res.json()) as UploadResponse;
     
     if(!upload.blocks[0]) {
         SweetieClient.LOGGER.error(upload);
         throw new Error("Couldn't find the image on the upload request to Yandex!");
     }
 
-    return await request(`${searchUrl}?${upload.blocks[0].params.url}`).then(res => res.body.text()).then(body => {
+    return await fetch(`${searchUrl}?${upload.blocks[0].params.url}`).then(res => res.text()).then(body => {
         const [,match] = body.match(/data-state="({&quot;sites&quot;:.+?)"/) ?? [];
         
         if(!match) {
