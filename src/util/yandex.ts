@@ -1,6 +1,7 @@
 import { CommandInteraction, EmbedBuilder } from "discord.js";
 import FormData from "form-data";
 import he from "he";
+import sharp from "sharp";
 import { request } from "undici";
 import SweetieClient from "../lib/SweetieClient.js";
 import EmbedList from "./EmbedList.js";
@@ -30,11 +31,16 @@ const searchUrl = "https://yandex.ru/images/search";
 
 export async function getResponse(image: Buffer): Promise<SiteResponse> {
     const formData = new FormData();
-    formData.append("upfile", image);
+    formData.append("upfile", await sharp(image).toFormat("jpg").toBuffer());
     const upload = await request(`${searchUrl}?rpt=imageview&format=json&request=${encodeURIComponent("{\"blocks\":[{\"block\":\"b-page_type_search-by-image__link\"}]}\")}")}`, {
         body: formData.getBuffer()
     }).then(res => res.body.json()) as UploadResponse;
     
+    if(!upload.blocks[0]) {
+        SweetieClient.LOGGER.error(upload);
+        throw new Error("Couldn't find the image on the upload request to Yandex!");
+    }
+
     return await request(`${searchUrl}?${upload.blocks[0].params.url}`).then(res => res.body.text()).then(body => {
         const [,match] = body.match(/data-state="({&quot;sites&quot;:.+?)"/) ?? [];
         
