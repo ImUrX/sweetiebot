@@ -1,3 +1,4 @@
+import { Blob } from "buffer";
 import { CommandInteraction, EmbedBuilder } from "discord.js";
 import he from "he";
 import { fetch, FormData } from "undici";
@@ -6,8 +7,8 @@ import EmbedList from "./EmbedList.js";
 
 export async function replyTo(interaction: CommandInteraction, show: number, url: string, client: SweetieClient): Promise<void> {
     interaction.deferReply();
-    const buffer = await fetch(url).then(res => res.arrayBuffer());
-    const res = await getResponse(Buffer.from(buffer));
+    const blob = await fetch(url).then(res => res.blob());
+    const res = await getResponse(blob);
     const embedList = new EmbedList({ time: 15000, displayAmount: show });
     for(const data of res.sites) {
         embedList.add(await createEmbed(data, client));
@@ -27,7 +28,7 @@ export async function createEmbed(data: SiteData, _client: SweetieClient): Promi
 
 const searchUrl = "https://yandex.ru/images/search";
 
-export async function getResponse(image: Buffer): Promise<SiteResponse> {
+export async function getResponse(image: Blob): Promise<SiteResponse> {
     const formData = new FormData();
     formData.append("upfile", image);
     const upload = await fetch(`${searchUrl}?rpt=imageview&format=json&request=${encodeURIComponent("{\"blocks\":[{\"block\":\"b-page_type_search-by-image__link\"}]}")}`, {
@@ -49,7 +50,7 @@ export async function getResponse(image: Buffer): Promise<SiteResponse> {
             throw new Error("Couldn't find the data-state from Yandex");
         }
 
-        return JSON.parse(he.decode(body, { isAttributeValue: true })) as SiteResponse;
+        return JSON.parse(he.decode(match, { isAttributeValue: true })) as SiteResponse;
     });
 }
 
