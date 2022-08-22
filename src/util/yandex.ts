@@ -1,7 +1,8 @@
 import { CommandInteraction, EmbedBuilder } from "discord.js";
+import FormData from "form-data";
 import he from "he";
 import sharp from "sharp";
-import { request, FormData } from "undici";
+import { request } from "undici";
 import SweetieClient from "../lib/SweetieClient.js";
 import EmbedList from "./EmbedList.js";
 
