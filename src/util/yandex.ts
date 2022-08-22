@@ -1,6 +1,6 @@
 import { CommandInteraction, EmbedBuilder } from "discord.js";
 import FormData from "form-data";
-import { decode } from "he";
+import he from "he";
 import { request } from "undici";
 import SweetieClient from "../lib/SweetieClient.js";
 import EmbedList from "./EmbedList.js";
@@ -43,7 +43,7 @@ export async function getResponse(image: Buffer): Promise<SiteResponse> {
             throw new Error("Couldn't find the data-state from Yandex");
         }
 
-        return JSON.parse(decode(body, { isAttributeValue: true })) as SiteResponse;
+        return JSON.parse(he.decode(body, { isAttributeValue: true })) as SiteResponse;
     });
 }
 
