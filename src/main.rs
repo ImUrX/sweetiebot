@@ -1,10 +1,13 @@
 mod util;
+use dotenv::dotenv;
 use futures::stream::StreamExt;
 use std::{env, error::Error, sync::Arc};
 use twilight_cache_inmemory::{InMemoryCache, ResourceType};
-use twilight_gateway::{cluster::{Cluster, ShardScheme}, Event, Intents};
+use twilight_gateway::{
+    cluster::{Cluster, ShardScheme},
+    Event, Intents,
+};
 use twilight_http::Client as HttpClient;
-use dotenv::dotenv;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn Error + Send + Sync>> {
@@ -40,6 +43,12 @@ async fn main() -> Result<(), Box<dyn Error + Send + Sync>> {
     // one, also use Arc such that it can be cloned to other threads.
     let http = Arc::new(HttpClient::new(token));
 
+    let application_id = {
+        let response = http.current_user_application().exec().await?;
+
+        response.model().await?.id
+    };
+
     // Since we only care about messages, make the cache only process messages.
     let cache = InMemoryCache::builder()
         .resource_types(ResourceType::MESSAGE)
@@ -65,7 +74,10 @@ async fn handle_event(
 ) -> Result<(), Box<dyn Error + Send + Sync>> {
     match event {
         Event::MessageCreate(msg) if msg.content == "!ping" => {
-            http.create_message(msg.channel_id).content("Pong!")?.exec().await?;
+            http.create_message(msg.channel_id)
+                .content("Pong!")?
+                .exec()
+                .await?;
         }
         Event::ShardConnected(_) => {
             println!("Connected on shard {}", shard_id);
