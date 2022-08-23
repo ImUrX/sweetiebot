@@ -1,13 +1,6 @@
-use std::{
-    error::Error,
-    io,
-    sync::{
-        atomic::{AtomicUsize, Ordering},
-        Arc,
-    },
-    time::Duration,
-};
+use std::{sync::Arc, time::Duration};
 
+use anyhow::{ensure, Result};
 use futures::{stream::TryStreamExt, StreamExt};
 use tokio::time::timeout;
 use twilight_http::Client as HttpClient;
@@ -26,7 +19,7 @@ use twilight_util::builder::InteractionResponseDataBuilder;
 
 pub struct EmbedList {
     pub embeds: Vec<Embed>,
-    pub index: Arc<AtomicUsize>,
+    pub index: Arc<usize>,
     pub duration: u64,
     http: Arc<HttpClient>,
     application_id: Id<ApplicationMarker>,
@@ -41,7 +34,7 @@ impl EmbedList {
     ) -> Self {
         return EmbedList {
             embeds: Vec::new(),
-            index: Arc::new(AtomicUsize::new(0)),
+            index: Arc::new(0),
             duration: 70,
             http,
             application_id,
@@ -57,17 +50,12 @@ impl EmbedList {
         self,
         interaction: Interaction,
         builder: InteractionResponseDataBuilder,
-    ) -> Result<(), Box<dyn Error + Send + Sync>> {
-        if self.embeds.len() == 0 {
-            return Err(Box::new(io::Error::new(
-                std::io::ErrorKind::InvalidInput,
-                "There is no embeds to send!",
-            )));
-        }
+    ) -> Result<()> {
+        ensure!(self.embeds.len() == 0, "There is no embeds to send!");
 
-        let client = Arc::new(self.http.interaction(self.application_id));
         // Just send the embed without any component
         if self.embeds.len() == 1 {
+            let client = self.http.interaction(self.application_id);
             let builder = builder.embeds(self.embeds);
             let response = InteractionResponse {
                 kind: InteractionResponseType::ChannelMessageWithSource,
@@ -87,7 +75,8 @@ impl EmbedList {
             kind: InteractionResponseType::ChannelMessageWithSource,
             data: Some(first.build()),
         };
-        client
+        self.http
+            .interaction(self.application_id)
             .create_response(interaction.id, &interaction.token, &response)
             .exec()
             .await?;
@@ -109,17 +98,24 @@ impl EmbedList {
 
         // Try for each the stream because we need to time out of it after the specified time
         let process = components
-            .map(|x| -> Result<Interaction, Box<dyn Error + Send + Sync>> { Ok(x) })
+            .map(|x| -> Result<Interaction> { Ok(x) })
             .try_for_each(|component| {
-                let client = client.clone();
-                let atomic = self.index.clone();
+                let http = self.http.clone();
+                let mut index = self.index.clone();
                 let embeds = self.embeds.clone();
                 let token = interaction.token.clone();
+                let application_id = self.application_id.clone();
                 async move {
                     if let Some(InteractionData::MessageComponent(data)) = component.data {
                         let index = match &*data.custom_id {
-                            "next" => atomic.fetch_add(1, Ordering::Release) + 1,
-                            "back" => atomic.fetch_sub(1, Ordering::Release) - 1,
+                            "next" => {
+                                *Arc::get_mut(&mut index).unwrap() += 1;
+                                *index
+                            }
+                            "back" => {
+                                *Arc::get_mut(&mut index).unwrap() -= 1;
+                                *index
+                            }
                             _ => panic!("unhandled custom id!"),
                         };
                         let action_row = [Component::ActionRow(Self::generate_row(
@@ -127,11 +123,13 @@ impl EmbedList {
                             index >= embeds.len(),
                         ))];
                         let embeds = &embeds[index..(index + 1)];
-                        let update = client
+                        let _update = http
+                            .interaction(application_id)
                             .update_response(&token)
                             .embeds(Some(embeds))?
-                            .components(Some(&action_row))?;
-                        update.exec().await?;
+                            .components(Some(&action_row))?
+                            .exec()
+                            .await?;
                     }
                     Ok(())
                 }
@@ -140,13 +138,16 @@ impl EmbedList {
         // Clear all components when timeout runs out
         match timeout(Duration::from_secs(self.duration), process).await {
             Err(_) => {
-                let update = client
+                let _update = self
+                    .http
+                    .interaction(self.application_id)
                     .update_response(&interaction.token)
-                    .components(None)?;
-                update.exec().await?;
+                    .components(None)?
+                    .exec()
+                    .await?;
                 Ok(())
             }
-            Ok(result) => Ok(result?)
+            Ok(result) => result,
         }
     }
 
