@@ -100,11 +100,9 @@ impl EmbedList {
         let process = components
             .map(|x| -> Result<Interaction> { Ok(x) })
             .try_for_each(|component| {
-                let http = self.http.clone();
-                let mut index = self.index.clone();
-                let embeds = self.embeds.clone();
+                let list = Arc::new(&self);
+                let mut index = list.index.clone();
                 let token = interaction.token.clone();
-                let application_id = self.application_id.clone();
                 async move {
                     if let Some(InteractionData::MessageComponent(data)) = component.data {
                         let index = match &*data.custom_id {
@@ -120,11 +118,12 @@ impl EmbedList {
                         };
                         let action_row = [Component::ActionRow(Self::generate_row(
                             index <= 0,
-                            index >= embeds.len(),
+                            index >= list.embeds.len(),
                         ))];
-                        let embeds = &embeds[index..(index + 1)];
-                        let _update = http
-                            .interaction(application_id)
+                        let embeds = &list.embeds[index..(index + 1)];
+                        let _update = list
+                            .http
+                            .interaction(list.application_id)
                             .update_response(&token)
                             .embeds(Some(embeds))?
                             .components(Some(&action_row))?
