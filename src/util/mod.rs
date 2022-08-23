@@ -54,7 +54,7 @@ impl EmbedList {
     }
 
     pub async fn reply(
-        mut self,
+        self,
         interaction: Interaction,
         builder: InteractionResponseDataBuilder,
     ) -> Result<(), Box<dyn Error + Send + Sync>> {
@@ -66,6 +66,7 @@ impl EmbedList {
         }
 
         let client = Arc::new(self.http.interaction(self.application_id));
+        // Just send the embed without any component
         if self.embeds.len() == 1 {
             let builder = builder.embeds(self.embeds);
             let response = InteractionResponse {
@@ -77,6 +78,7 @@ impl EmbedList {
             return Ok(());
         }
 
+        // Send the first message with the embed and components
         let first = builder
             .clone()
             .embeds([self.embeds[0].clone()])
@@ -90,6 +92,7 @@ impl EmbedList {
             .exec()
             .await?;
 
+        // Make stream based on the back and next buttons
         let components = self.standby.wait_for_component_stream(
             interaction
                 .message
@@ -104,6 +107,7 @@ impl EmbedList {
             },
         );
 
+        // Try for each the stream because we need to time out of it after the specified time
         let process = components
             .map(|x| -> Result<Interaction, Box<dyn Error + Send + Sync>> { Ok(x) })
             .try_for_each(|component| {
@@ -134,16 +138,19 @@ impl EmbedList {
             });
 
         // Clear all components when timeout runs out
-        if let Err(_) = timeout(Duration::from_secs(self.duration), process).await {
-            let update = client
-                .update_response(&interaction.token)
-                .components(None)?;
-            update.exec().await?;
-        };
-        Ok(())
+        match timeout(Duration::from_secs(self.duration), process).await {
+            Err(_) => {
+                let update = client
+                    .update_response(&interaction.token)
+                    .components(None)?;
+                update.exec().await?;
+                Ok(())
+            }
+            Ok(result) => Ok(result?)
+        }
     }
 
-    pub fn generate_row(prev: bool, next: bool) -> ActionRow {
+    fn generate_row(prev: bool, next: bool) -> ActionRow {
         ActionRow {
             components: Vec::from([
                 Component::Button(Button {
