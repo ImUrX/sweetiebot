@@ -110,3 +110,8 @@ assets/fonts/
 assets/schemas/
 
 bin/
+
+
+# Added by cargo
+
+/target
