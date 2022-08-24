@@ -1,7 +1,9 @@
 use std::{sync::Arc, time::Duration};
 
 use anyhow::{ensure, Result};
-use futures::{stream::TryStreamExt, StreamExt};
+use futures::{stream::TryStreamExt, StreamExt, TryFutureExt};
+use reqwest::Url;
+use serde::Deserialize;
 use tokio::time::timeout;
 use twilight_http::Client as HttpClient;
 use twilight_model::{
@@ -16,6 +18,7 @@ use twilight_model::{
 };
 use twilight_standby::Standby;
 use twilight_util::builder::InteractionResponseDataBuilder;
+use urlencoding::encode;
 
 pub struct EmbedList {
     pub embeds: Vec<Embed>,
@@ -172,4 +175,81 @@ impl EmbedList {
             ]),
         }
     }
+}
+
+pub async fn jisho_words(keyword: &String) -> Result<()> {
+    let client = reqwest::Client::new();
+    let req = client.get("https://jisho.org/api/v1/search/words")
+        .query(&[("keyword", keyword)])
+        .send()
+        .and_then(|x| x.json::<JishoResult>());
+    let encoded = encode(keyword);
+    let html = client.get("https://jisho.org/search/")
+        .send()
+        .await?
+        .text()
+        .await?;
+    Ok(())
+}
+
+#[derive(Deserialize, Debug)]
+pub struct JishoResult {
+	pub meta: JishoMetadata,
+	pub data: Vec<JishoWord>,
+}
+
+#[derive(Deserialize, Debug)]
+pub struct JishoWord {
+	pub slug: String,
+	pub is_common: bool,
+	pub tags: Vec<String>,
+	pub jlpt: Vec<String>,
+	pub japanese: Vec<JishoJapanese>,
+	pub senses: Vec<JishoSense>,
+	pub attribution: JishoWordAttribution,
+	//audio: JishoWordAudio
+}
+
+#[derive(Deserialize, Debug)]
+pub struct JishoWordAttribution {
+    pub jmdict: bool,
+    pub jmnedict: bool,
+    pub dbpedia: bool
+}
+
+#[derive(Deserialize, Debug)]
+pub struct JishoWordAudio {
+    pub mp3: Option<String>,
+    pub ogg: Option<String>
+}
+
+#[derive(Deserialize, Debug)]
+pub struct JishoMetadata {
+    pub status: u32
+}
+
+#[derive(Deserialize, Debug)]
+pub struct JishoJapanese {
+	pub word: String,
+	pub reading: String,
+	//furigana: Vec<String>
+}
+
+#[derive(Deserialize, Debug)]
+pub struct JishoSense {
+	pub english_definitions: Vec<String>,
+	pub parts_of_speech: Vec<String>,
+	pub links: Vec<JishoSenseLink>,
+	pub tags: Vec<String>,
+	pub restrictions: Vec<String>,
+	pub see_also: Vec<String>,
+	pub antonyms: Vec<String>,
+	pub source: Vec<String>,
+	pub info: Vec<String>
+}
+
+#[derive(Deserialize, Debug)]
+pub struct JishoSenseLink {
+    pub text: String,
+    pub url: String
 }
