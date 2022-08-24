@@ -2,7 +2,7 @@ use std::{sync::Arc, time::Duration};
 
 use anyhow::{ensure, Result};
 use futures::{stream::TryStreamExt, StreamExt, TryFutureExt};
-use reqwest::Url;
+use scraper::{Html, Selector};
 use serde::Deserialize;
 use tokio::time::timeout;
 use twilight_http::Client as HttpClient;
@@ -35,14 +35,14 @@ impl EmbedList {
         application_id: Id<ApplicationMarker>,
         standby: Arc<Standby>,
     ) -> Self {
-        return EmbedList {
+        EmbedList {
             embeds: Vec::new(),
             index: Arc::new(0),
             duration: 70,
             http,
             application_id,
             standby,
-        };
+        }
     }
 
     pub fn add(&mut self, embed: Embed) {
@@ -54,7 +54,7 @@ impl EmbedList {
         interaction: Interaction,
         builder: InteractionResponseDataBuilder,
     ) -> Result<()> {
-        ensure!(self.embeds.len() == 0, "There is no embeds to send!");
+        ensure!(self.embeds.is_empty(), "There is no embeds to send!");
 
         // Just send the embed without any component
         if self.embeds.len() == 1 {
@@ -120,8 +120,8 @@ impl EmbedList {
                             _ => panic!("unhandled custom id!"),
                         };
                         let action_row = [Component::ActionRow(Self::generate_row(
-                            index <= 0,
-                            index >= list.embeds.len(),
+                            index == 0,
+                            index == list.embeds.len(),
                         ))];
                         let embeds = &list.embeds[index..(index + 1)];
                         let _update = list
@@ -177,79 +177,98 @@ impl EmbedList {
     }
 }
 
-pub async fn jisho_words(keyword: &String) -> Result<()> {
+pub async fn jisho_words(keyword: &String) -> Result<JishoResult> {
     let client = reqwest::Client::new();
-    let req = client.get("https://jisho.org/api/v1/search/words")
+    let req = client
+        .get("https://jisho.org/api/v1/search/words")
         .query(&[("keyword", keyword)])
         .send()
         .and_then(|x| x.json::<JishoResult>());
-    let encoded = encode(keyword);
-    let html = client.get("https://jisho.org/search/")
+
+    let html = client
+        .get(format!("https://jisho.org/search/{}", encode(keyword)))
         .send()
         .await?
         .text()
         .await?;
-    Ok(())
+    let document = Html::parse_document(&html);
+    let definition_selector = Selector::parse("#primary > div > div").unwrap();
+    let furigana_selector = Selector::parse(".furigana span").unwrap();
+    let mut furiganas: Vec<Vec<String>> = Vec::new();
+    for definition in document.select(&definition_selector) {
+        furiganas.push(
+            definition
+                .select(&furigana_selector)
+                .map(|x| x.inner_html().trim().to_string())
+                .collect(),
+        );
+    }
+    let mut res = req.await?;
+    for (data, furigana) in res.data.iter_mut().zip(furiganas) {
+        data.japanese[0].furigana = furigana;
+    }
+    Ok(res)
 }
 
 #[derive(Deserialize, Debug)]
 pub struct JishoResult {
-	pub meta: JishoMetadata,
-	pub data: Vec<JishoWord>,
+    pub meta: JishoMetadata,
+    pub data: Vec<JishoWord>,
 }
 
 #[derive(Deserialize, Debug)]
 pub struct JishoWord {
-	pub slug: String,
-	pub is_common: bool,
-	pub tags: Vec<String>,
-	pub jlpt: Vec<String>,
-	pub japanese: Vec<JishoJapanese>,
-	pub senses: Vec<JishoSense>,
-	pub attribution: JishoWordAttribution,
-	//audio: JishoWordAudio
+    pub slug: String,
+    pub is_common: bool,
+    pub tags: Vec<String>,
+    pub jlpt: Vec<String>,
+    pub japanese: Vec<JishoJapanese>,
+    pub senses: Vec<JishoSense>,
+    pub attribution: JishoWordAttribution,
+    //audio: JishoWordAudio
 }
 
 #[derive(Deserialize, Debug)]
 pub struct JishoWordAttribution {
     pub jmdict: bool,
     pub jmnedict: bool,
-    pub dbpedia: bool
+    pub dbpedia: bool,
 }
 
 #[derive(Deserialize, Debug)]
 pub struct JishoWordAudio {
     pub mp3: Option<String>,
-    pub ogg: Option<String>
+    pub ogg: Option<String>,
 }
 
 #[derive(Deserialize, Debug)]
 pub struct JishoMetadata {
-    pub status: u32
+    pub status: u32,
 }
 
 #[derive(Deserialize, Debug)]
 pub struct JishoJapanese {
-	pub word: String,
-	pub reading: String,
-	//furigana: Vec<String>
+    pub word: String,
+    pub reading: String,
+    #[serde(default)]
+    pub furigana: Vec<String>,
 }
 
 #[derive(Deserialize, Debug)]
 pub struct JishoSense {
-	pub english_definitions: Vec<String>,
-	pub parts_of_speech: Vec<String>,
-	pub links: Vec<JishoSenseLink>,
-	pub tags: Vec<String>,
-	pub restrictions: Vec<String>,
-	pub see_also: Vec<String>,
-	pub antonyms: Vec<String>,
-	pub source: Vec<String>,
-	pub info: Vec<String>
+    pub english_definitions: Vec<String>,
+    pub parts_of_speech: Vec<String>,
+    pub links: Vec<JishoSenseLink>,
+    pub tags: Vec<String>,
+    pub restrictions: Vec<String>,
+    pub see_also: Vec<String>,
+    pub antonyms: Vec<String>,
+    pub source: Vec<String>,
+    pub info: Vec<String>,
 }
 
 #[derive(Deserialize, Debug)]
 pub struct JishoSenseLink {
     pub text: String,
-    pub url: String
+    pub url: String,
 }
