@@ -177,7 +177,7 @@ impl EmbedList {
     }
 }
 
-pub async fn jisho_words(keyword: &String) -> Result<JishoResult> {
+pub async fn jisho_words(keyword: &str) -> Result<JishoResult> {
     let client = reqwest::Client::new();
     let req = client
         .get("https://jisho.org/api/v1/search/words")
@@ -248,7 +248,7 @@ pub struct JishoMetadata {
 
 #[derive(Deserialize, Debug)]
 pub struct JishoJapanese {
-    pub word: String,
+    pub word: Option<String>,
     pub reading: String,
     #[serde(default)]
     pub furigana: Vec<String>,

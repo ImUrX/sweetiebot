@@ -1,4 +1,5 @@
-mod util;
+pub mod util;
+mod commands;
 use dotenv::dotenv;
 use futures::stream::StreamExt;
 use std::{env, error::Error, sync::Arc};

@@ -8,8 +8,8 @@ edition = "2021"
 
 [dependencies]
 twilight-model = "0.13"
-twilight-http = { version = "0.13", features = ["rustls-native-roots", "simd-json"] }
-twilight-gateway = { version = "0.13", features = ["rustls-native-roots", "simd-json"] }
+twilight-http = { default-features = false, version = "0.13", features = ["native", "simd-json"] }
+twilight-gateway = { default-features = false, version = "0.13", features = ["native", "simd-json"] }
 twilight-cache-inmemory = "0.13"
 twilight-standby = "0.13"
 twilight-util = { version = "0.13", features = ["builder"]}
@@ -21,8 +21,10 @@ tokio-stream = "0.1.9"
 dotenv = "0.15"
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
-smallvec = "1.9.0"
+smallvec = "1.9"
 anyhow = "1.0"
 reqwest = { version = "0.11", features = ["json", "gzip"] }
-scraper = "0.13.0"
-urlencoding = "2.1.0"
+scraper = "0.13"
+urlencoding = "2.1"
+tiny-skia = "0.7"
+wana_kana = "2.0"
