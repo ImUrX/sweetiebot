@@ -2,8 +2,11 @@ use std::{sync::Arc, time::Duration};
 
 use anyhow::{ensure, Result};
 use futures::{stream::TryStreamExt, StreamExt, TryFutureExt};
+use include_dir::{include_dir, Dir};
+use lazy_static::lazy_static;
 use scraper::{Html, Selector};
 use serde::Deserialize;
+use skia_safe::textlayout::FontCollection;
 use tokio::time::timeout;
 use twilight_http::Client as HttpClient;
 use twilight_model::{
@@ -19,6 +22,8 @@ use twilight_model::{
 use twilight_standby::Standby;
 use twilight_util::builder::InteractionResponseDataBuilder;
 use urlencoding::encode;
+
+pub static ASSETS_DIR: Dir<'_> = include_dir!("$CARGO_MANIFEST_DIR/assets");
 
 pub struct EmbedList {
     pub embeds: Vec<Embed>,

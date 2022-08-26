@@ -25,3 +25,7 @@ fn process_tags(word: crate::util::JishoWord) -> Vec<String> {
     }
     vec
 }
+
+fn generate_furigana(japanese: crate::util::JishoJapanese) {
+    
+}
