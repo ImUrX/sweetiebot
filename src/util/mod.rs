@@ -6,7 +6,8 @@ use include_dir::{include_dir, Dir};
 use lazy_static::lazy_static;
 use scraper::{Html, Selector};
 use serde::Deserialize;
-use skia_safe::textlayout::FontCollection;
+use skia_safe::{Data, Typeface, textlayout::{FontCollection, TypefaceFontProvider}, FontMgr};
+use smallvec::SmallVec;
 use tokio::time::timeout;
 use twilight_http::Client as HttpClient;
 use twilight_model::{
@@ -23,7 +24,41 @@ use twilight_standby::Standby;
 use twilight_util::builder::InteractionResponseDataBuilder;
 use urlencoding::encode;
 
-pub static ASSETS_DIR: Dir<'_> = include_dir!("$CARGO_MANIFEST_DIR/assets");
+const VALID_FONTS: &[&str] = &["ttf", "ttc"];
+
+pub static ASSETS_DIR: Dir = include_dir!("$CARGO_MANIFEST_DIR/assets");
+lazy_static! {
+    pub static ref FONTS: SmallVec<[Typeface; 5]> = {
+        let mut vec = SmallVec::new();
+        for dir in ASSETS_DIR
+            .get_dir("fonts")
+            .expect("There is no fonts folder!")
+            .dirs()
+        {
+            for font in dir.files().filter(|x| {
+                if let Some(ext) = x.path().extension() {
+                    VALID_FONTS.contains(&&*ext.to_string_lossy())
+                } else {
+                    false
+                }
+            }) {
+                let data = unsafe { Data::new_bytes(font.contents()) };
+                vec.push(Typeface::from_data(data, 0).expect("Invalid font!"));
+            }
+        }
+        vec
+    };
+}
+
+pub fn get_font_collection() -> FontCollection {
+    let mut collection = FontCollection::new();
+    let mut mgr = TypefaceFontProvider::new();
+    for font in FONTS.iter() {
+        mgr.register_typeface(font.clone(), Some("Bot Font"));
+    }
+    collection.set_default_font_manager(Some(mgr.into()), Some("Bot Font"));
+    collection
+}
 
 pub struct EmbedList {
     pub embeds: Vec<Embed>,

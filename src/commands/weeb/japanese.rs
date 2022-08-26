@@ -1,5 +1,6 @@
 use std::borrow::Cow;
 
+use skia_safe::{Surface, Paint, paint, Rect};
 use twilight_interactions::command::{CommandModel, CreateCommand};
 
 #[derive(CommandModel, CreateCommand)]
@@ -26,6 +27,14 @@ fn process_tags(word: crate::util::JishoWord) -> Vec<String> {
     vec
 }
 
+const IMAGE_WIDTH: i32 = 128;
 fn generate_furigana(japanese: crate::util::JishoJapanese) {
+    let mut surface = Surface::new_raster_n32_premul((IMAGE_WIDTH, IMAGE_WIDTH)).unwrap();
+    let canvas = surface.canvas();
+    let fill_paint = &mut Paint::default();
+    fill_paint
+        .set_color(0x2C2F33)
+        .set_style(paint::Style::Fill);
     
+    canvas.draw_rect(Rect::from_size((IMAGE_WIDTH, IMAGE_WIDTH)), fill_paint);
 }

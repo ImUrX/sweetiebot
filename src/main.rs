@@ -1,8 +1,9 @@
-pub mod util;
 mod commands;
+pub mod util;
+use anyhow::Result;
 use dotenv::dotenv;
 use futures::stream::StreamExt;
-use std::{env, error::Error, sync::Arc};
+use std::{env, sync::Arc};
 use twilight_cache_inmemory::{InMemoryCache, ResourceType};
 use twilight_gateway::{
     cluster::{Cluster, ShardScheme},
@@ -11,7 +12,7 @@ use twilight_gateway::{
 use twilight_http::Client as HttpClient;
 
 #[tokio::main]
-async fn main() -> Result<(), Box<dyn Error + Send + Sync>> {
+async fn main() -> Result<()> {
     dotenv().ok();
     let token = env::var("DISCORD_TOKEN")?;
 
@@ -72,7 +73,7 @@ async fn handle_event(
     shard_id: u64,
     event: Event,
     http: Arc<HttpClient>,
-) -> Result<(), Box<dyn Error + Send + Sync>> {
+) -> Result<()> {
     match event {
         Event::MessageCreate(msg) if msg.content == "!ping" => {
             http.create_message(msg.channel_id)
