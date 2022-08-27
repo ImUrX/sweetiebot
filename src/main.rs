@@ -3,7 +3,9 @@ pub mod util;
 use anyhow::Result;
 use dotenv::dotenv;
 use futures::stream::StreamExt;
-use std::{env, sync::Arc};
+use skia_safe::EncodedImageFormat;
+use std::{env, sync::Arc, fs::File};
+use std::io::prelude::*;
 use twilight_cache_inmemory::{InMemoryCache, ResourceType};
 use twilight_gateway::{
     cluster::{Cluster, ShardScheme},
@@ -13,6 +15,15 @@ use twilight_http::Client as HttpClient;
 
 #[tokio::main]
 async fn main() -> Result<()> {
+    let furigana = commands::weeb::japanese::generate_furigana(util::JishoJapanese {
+        word: Some("何".to_string()),
+        reading: "なに".to_string(),
+        furigana: vec!("なに".to_string())
+    }).encode_to_data(EncodedImageFormat::PNG).unwrap();
+
+    let mut file = File::create("foo.png")?;
+    file.write_all(furigana.as_bytes())?;
+
     dotenv().ok();
     let token = env::var("DISCORD_TOKEN")?;
 
