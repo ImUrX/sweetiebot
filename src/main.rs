@@ -69,11 +69,7 @@ async fn main() -> Result<()> {
     Ok(())
 }
 
-async fn handle_event(
-    shard_id: u64,
-    event: Event,
-    http: Arc<HttpClient>,
-) -> Result<()> {
+async fn handle_event(shard_id: u64, event: Event, http: Arc<HttpClient>) -> Result<()> {
     match event {
         Event::MessageCreate(msg) if msg.content == "!ping" => {
             http.create_message(msg.channel_id)

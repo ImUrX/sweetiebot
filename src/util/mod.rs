@@ -6,7 +6,10 @@ use include_dir::{include_dir, Dir};
 use lazy_static::lazy_static;
 use scraper::{Html, Selector};
 use serde::Deserialize;
-use skia_safe::{Data, Typeface, textlayout::{FontCollection, TypefaceFontProvider}, FontMgr};
+use skia_safe::{
+    textlayout::{FontCollection, TypefaceFontProvider},
+    Data, FontMgr, Typeface,
+};
 use smallvec::SmallVec;
 use tokio::time::timeout;
 use twilight_http::Client as HttpClient;

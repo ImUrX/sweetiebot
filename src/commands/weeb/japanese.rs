@@ -1,6 +1,10 @@
-use std::borrow::Cow;
+use std::{borrow::Cow};
 
-use skia_safe::{Surface, Paint, paint, Rect};
+use skia_safe::{
+    paint,
+    textlayout::{ParagraphBuilder, ParagraphStyle, TextAlign, TextStyle},
+    Paint, Rect, Surface, Image
+};
 use twilight_interactions::command::{CommandModel, CreateCommand};
 
 #[derive(CommandModel, CreateCommand)]
@@ -28,13 +32,51 @@ fn process_tags(word: crate::util::JishoWord) -> Vec<String> {
 }
 
 const IMAGE_WIDTH: i32 = 128;
-fn generate_furigana(japanese: crate::util::JishoJapanese) {
-    let mut surface = Surface::new_raster_n32_premul((IMAGE_WIDTH, IMAGE_WIDTH)).unwrap();
+const IMAGE_HEIGHT: i32 = 128;
+const MARGIN: i32 = 6;
+const BACKGROUND_COLOR: u32 = 0x2C2F33;
+const TEXT_COLOR: u32 = 0xFFFFFF;
+const TEXT_SIZE: f32 = 32.0;
+fn generate_furigana(japanese: crate::util::JishoJapanese) -> Image {
+    let mut surface = Surface::new_raster_n32_premul((IMAGE_WIDTH, IMAGE_HEIGHT)).unwrap();
     let canvas = surface.canvas();
     let fill_paint = &mut Paint::default();
+    let text = japanese.word.unwrap_or(japanese.reading);
     fill_paint
-        .set_color(0x2C2F33)
+        .set_color(BACKGROUND_COLOR)
         .set_style(paint::Style::Fill);
-    
-    canvas.draw_rect(Rect::from_size((IMAGE_WIDTH, IMAGE_WIDTH)), fill_paint);
+
+    canvas.draw_rect(Rect::from_size((IMAGE_WIDTH, IMAGE_HEIGHT)), fill_paint);
+
+    let mut text_style = TextStyle::new();
+    text_style.set_color(TEXT_COLOR).set_font_size(TEXT_SIZE);
+
+    let mut paragraph_style = ParagraphStyle::new();
+    paragraph_style
+        .set_text_align(TextAlign::Center)
+        .set_text_style(&text_style);
+
+    let mut paragraph_builder =
+        ParagraphBuilder::new(&paragraph_style, crate::util::get_font_collection());
+    let measure = {
+        let paragraph = paragraph_builder
+            .add_text(&text)
+            .build();
+        let measure = paragraph.get_line_metrics();
+        paragraph_builder.reset();
+        measure[0].width
+    };
+    let size: f32 = if measure >= IMAGE_WIDTH.into() {
+        (((IMAGE_WIDTH - MARGIN) as f64 / measure) * TEXT_SIZE as f64) as f32
+    } else {
+        TEXT_SIZE
+    };
+
+    text_style.set_font_size(size);
+    let paragraph = paragraph_builder.add_text(text).build();
+    paragraph.paint(canvas, (IMAGE_WIDTH / 2, IMAGE_HEIGHT / 2));
+    if japanese.furigana.is_empty() {
+        return surface.image_snapshot()
+    }
+    surface.image_snapshot()
 }

@@ -32,6 +32,7 @@ export default class VNDB extends EventEmitter {
 				currentData = "";
 			}
 		});
+		const a = this.get(VNDBType.VN, ["anime", "basic"], "");
 	}
 
 	/**
