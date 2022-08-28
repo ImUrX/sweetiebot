@@ -72,7 +72,7 @@ pub fn generate_furigana(japanese: crate::util::JishoJapanese) -> Image {
     text_style.set_font_size(size);
     let mut paragraph = paragraph_builder.add_text(text.as_str()).build();
     paragraph.layout((IMAGE_WIDTH - MARGIN) as f32);
-    paragraph.paint(canvas, (IMAGE_WIDTH / 2, IMAGE_HEIGHT / 2));
+    paragraph.paint(canvas, (0, (IMAGE_HEIGHT / 2) - (size / 2f32) as i32));
     if japanese.furigana.is_empty() {
         return surface.image_snapshot()
     }

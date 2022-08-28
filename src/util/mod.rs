@@ -59,7 +59,7 @@ pub fn get_font_collection() -> FontCollection {
     for font in FONTS.iter() {
         mgr.register_typeface(font.clone(), Some("Bot Font"));
     }
-    collection.set_default_font_manager(Some(mgr.into()), Some("Bot Font"));
+    collection.set_default_font_manager(Some(mgr.into()), None);
     collection
 }
 
