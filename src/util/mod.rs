@@ -7,10 +7,10 @@ use lazy_static::lazy_static;
 use scraper::{Html, Selector};
 use serde::Deserialize;
 use skia_safe::{
-    textlayout::{FontCollection, TypefaceFontProvider},
-    Data, FontMgr, Typeface,
+    scalar,
+    textlayout::{FontCollection, ParagraphBuilder, TypefaceFontProvider},
+    Data, Typeface,
 };
-use smallvec::SmallVec;
 use tokio::time::timeout;
 use twilight_http::Client as HttpClient;
 use twilight_model::{
@@ -27,12 +27,12 @@ use twilight_standby::Standby;
 use twilight_util::builder::InteractionResponseDataBuilder;
 use urlencoding::encode;
 
-const VALID_FONTS: &[&str] = &["ttf", "ttc"];
+static VALID_FONTS: &[&str] = &["ttf", "ttc"];
 
 pub static ASSETS_DIR: Dir = include_dir!("$CARGO_MANIFEST_DIR/assets");
 lazy_static! {
-    pub static ref FONTS: SmallVec<[Typeface; 5]> = {
-        let mut vec = SmallVec::new();
+    pub static ref FONTS: Vec<Typeface> = {
+        let mut vec = Vec::new();
         for dir in ASSETS_DIR
             .get_dir("fonts")
             .expect("There is no fonts folder!")
@@ -53,14 +53,30 @@ lazy_static! {
     };
 }
 
+pub static FONT_NAMES: &[&str] = &["Noto Sans", "Noto Sans CJK JP", "Noto Color Emoji"];
 pub fn get_font_collection() -> FontCollection {
     let mut collection = FontCollection::new();
     let mut mgr = TypefaceFontProvider::new();
     for font in FONTS.iter() {
-        mgr.register_typeface(font.clone(), Some("Bot Font"));
+        mgr.register_typeface(font.clone(), Option::<&str>::None);
     }
-    collection.set_default_font_manager(Some(mgr.into()), None);
+    collection.set_default_font_manager_and_family_names(Some(mgr.into()), FONT_NAMES);
     collection
+}
+
+pub fn measure_text_width<'a>(
+    paragraph_builder: &'a mut ParagraphBuilder,
+    text: &'a str,
+    layout: scalar,
+) -> f64 {
+    if text.is_empty() {
+        return 0.0;
+    }
+    let mut paragraph = paragraph_builder.add_text(text).build();
+    paragraph.layout(layout);
+    let measure = paragraph.get_line_metrics();
+    paragraph_builder.reset();
+    measure[0].width
 }
 
 pub struct EmbedList {

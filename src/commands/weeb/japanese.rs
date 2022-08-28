@@ -1,11 +1,12 @@
-use std::{borrow::Cow};
+use std::borrow::Cow;
 
 use skia_safe::{
-    paint,
     textlayout::{ParagraphBuilder, ParagraphStyle, TextAlign, TextStyle},
-    Paint, Rect, Surface, Image, Point
+    Image, Surface,
 };
 use twilight_interactions::command::{CommandModel, CreateCommand};
+
+use crate::util::measure_text_width;
 
 #[derive(CommandModel, CreateCommand)]
 #[command(name = "japanese", desc = "Searches in Jisho for the word")]
@@ -45,7 +46,10 @@ pub fn generate_furigana(japanese: crate::util::JishoJapanese) -> Image {
     canvas.clear(BACKGROUND_COLOR);
 
     let mut text_style = TextStyle::new();
-    text_style.set_color(TEXT_COLOR).set_font_size(TEXT_SIZE);
+    text_style
+        .set_color(TEXT_COLOR)
+        .set_font_size(TEXT_SIZE)
+        .set_font_families(crate::util::FONT_NAMES);
 
     let mut paragraph_style = ParagraphStyle::new();
     paragraph_style
@@ -54,15 +58,8 @@ pub fn generate_furigana(japanese: crate::util::JishoJapanese) -> Image {
 
     let mut paragraph_builder =
         ParagraphBuilder::new(&paragraph_style, crate::util::get_font_collection());
-    let measure = {
-        let mut paragraph = paragraph_builder
-            .add_text(text.as_str())
-            .build();
-        paragraph.layout((IMAGE_WIDTH - MARGIN) as f32);
-        let measure = paragraph.get_line_metrics();
-        paragraph_builder.reset();
-        measure[0].width
-    };
+
+    let measure = measure_text_width(&mut paragraph_builder, &text, (IMAGE_WIDTH - MARGIN) as f32);
     let size: f32 = if measure >= IMAGE_WIDTH.into() {
         (((IMAGE_WIDTH - MARGIN) as f64 / measure) * TEXT_SIZE as f64) as f32
     } else {
@@ -70,11 +67,50 @@ pub fn generate_furigana(japanese: crate::util::JishoJapanese) -> Image {
     };
 
     text_style.set_font_size(size);
-    let mut paragraph = paragraph_builder.add_text(text.as_str()).build();
+    let mut paragraph = paragraph_builder.push_style(&text_style).add_text(text.as_str()).build();
     paragraph.layout((IMAGE_WIDTH - MARGIN) as f32);
-    paragraph.paint(canvas, (0, (IMAGE_HEIGHT / 2) - (size / 2f32) as i32));
+    paragraph.paint(canvas, (0, (IMAGE_HEIGHT / 2) - (size / 2.0) as i32));
     if japanese.furigana.is_empty() {
-        return surface.image_snapshot()
+        return surface.image_snapshot();
+    }
+
+    let text_length = text.chars().count();
+    let reducer = if text_length == 1 { 0 } else { 1 };
+    let first_char_pos_x = {
+        let mut half_width = (size * ((text_length / 2) - reducer) as f32);
+        // if its even
+        if text_length & 1 == 0 {
+            half_width -= size / 2.0;
+        } else if reducer == 1 {
+            half_width -= size;
+        }
+        half_width
+    };
+
+    for (index, furigana) in japanese.furigana.iter().enumerate() {
+        paragraph_builder.reset();
+        text_style.set_font_size(TEXT_SIZE / 2.0);
+        paragraph_builder.push_style(&text_style);
+        let furigana_measure = measure_text_width(
+            &mut paragraph_builder,
+            furigana,
+            (IMAGE_WIDTH - MARGIN) as f32,
+        );
+        let furigana_size = if furigana_measure < size.into() {
+            16.0
+        } else {
+            (size as f64 / furigana_measure) as f32 * (TEXT_SIZE / 2f32)
+        };
+        text_style.set_font_size(furigana_size);
+        let mut paragraph = paragraph_builder.push_style(&text_style).add_text(furigana).build();
+        paragraph.layout((IMAGE_WIDTH - MARGIN) as f32);
+        paragraph.paint(
+            canvas,
+            (
+                first_char_pos_x + (index as f32 * size),
+                (IMAGE_HEIGHT as f32 / 2.0) - size,
+            ),
+        )
     }
     surface.image_snapshot()
 }
