@@ -1,12 +1,25 @@
-use std::borrow::Cow;
+use std::{borrow::Cow, io::Read};
 
+use anyhow::{ensure, Result};
+use itertools::Itertools;
 use skia_safe::{
     textlayout::{ParagraphBuilder, ParagraphStyle, TextAlign, TextStyle},
-    Image, Surface,
+    EncodedImageFormat, Image, Surface,
 };
 use twilight_interactions::command::{CommandModel, CreateCommand};
+use twilight_model::{
+    application::interaction::Interaction, channel::embed::EmbedField, http::attachment::Attachment,
+};
+use twilight_util::builder::{
+    command::AttachmentBuilder,
+    embed::{EmbedBuilder, EmbedFieldBuilder, ImageSource},
+};
+use twilight_validate::embed::FIELD_VALUE_LENGTH;
 
-use crate::util::measure_text_width;
+use crate::{
+    util::{measure_text_width, JishoJapanese, JishoWord},
+    ClusterData,
+};
 
 #[derive(CommandModel, CreateCommand)]
 #[command(name = "japanese", desc = "Searches in Jisho for the word")]
@@ -18,16 +31,104 @@ pub struct JishoCommand<'a> {
 }
 
 impl JishoCommand<'_> {
-    fn run(&self, ) {
-        
+    async fn run(&self, info: ClusterData, interaction: Interaction) -> Result<()> {
+        Ok(())
     }
 
-    fn process_tags(word: crate::util::JishoWord) -> Vec<String> {
+    fn make_embed(word: JishoWord) -> Result<(EmbedBuilder, Attachment)> {
+        let mut embed = EmbedBuilder::new()
+            .title(word.slug.clone())
+            .url(format!("https://jisho.org/word/{}", word.slug))
+            .thumbnail(ImageSource::attachment("furigana.png")?);
+
+        let tags = Self::process_tags(&word).join(" - ");
+        if !tags.is_empty() {
+            embed = embed.description(format!("**{}**", tags))
+        }
+
+        let mut fields: Vec<EmbedField> = Vec::with_capacity(word.senses.len());
+        for (index, sense) in word.senses.iter().enumerate() {
+            let mut content = format!(
+                "{}. **{}**",
+                index + 1,
+                sense.english_definitions.join("; ")
+            );
+            content += &sense.tags.join(", ");
+            content += &sense
+                .restrictions
+                .iter()
+                .map(|x| format!("Only applies to {}", x))
+                .join(", ");
+            content += &sense
+                .see_also
+                .iter()
+                .map(|x| format!("[{}](https://jisho.org/search/{0})", x))
+                .join(", ");
+            content += &sense.info.join(", ");
+            content += &sense
+                .links
+                .iter()
+                .map(|x| format!("[{}]({})", x.text, x.url))
+                .join(", ");
+
+            if sense.parts_of_speech.is_empty() && !fields.is_empty() {
+                let len = fields.len();
+                fields[len - 1].value += &("\n".to_string() + &content);
+                ensure!(
+                    fields[len - 1].value.encode_utf16().count() > FIELD_VALUE_LENGTH,
+                    "Modifying the previous field made it too big!"
+                );
+                continue;
+            }
+
+            fields.push(
+                EmbedFieldBuilder::new(
+                    if sense.parts_of_speech.is_empty() {
+                        "\u{200b}".to_string()
+                    } else {
+                        sense.parts_of_speech.join(", ")
+                    },
+                    content,
+                )
+                .build(),
+            )
+        }
+
+        if word.japanese.len() > 1 {
+            let forms = word
+                .japanese
+                .iter()
+                .skip(1)
+                .filter_map(|x| {
+                    x.word
+                        .as_ref()
+                        .map(|writing| format!("{} 【{}】", writing, x.reading))
+                })
+                .join("、");
+
+            fields.push(EmbedFieldBuilder::new("Other forms", forms).build());
+        }
+
+        for field in fields {
+            embed = embed.field(field);
+        }
+
+        let furigana = Self::generate_furigana(&word.japanese[0])
+            .encode_to_data(EncodedImageFormat::PNG)
+            .unwrap();
+        // Converting the SkData to a Vec this way makes a copy of the whole &[u8], not nice.
+        Ok((
+            embed,
+            Attachment::from_bytes("furigana.png".to_string(), furigana.to_vec(), 1),
+        ))
+    }
+
+    fn process_tags(word: &JishoWord) -> Vec<String> {
         let mut vec = Vec::new();
         if word.is_common {
             vec.push("common word".to_owned());
         }
-        for tag in word.tags {
+        for tag in word.tags.iter() {
             if let Some(lvl) = tag.strip_prefix("wanikani") {
                 vec.push(format!("wanikani lvl{}", lvl));
             } else {
@@ -43,17 +144,18 @@ impl JishoCommand<'_> {
     const BACKGROUND_COLOR: u32 = 0xFF2C2F33;
     const TEXT_COLOR: u32 = 0xFFFFFFFF;
     const TEXT_SIZE: f32 = 32.0;
-    pub fn generate_furigana(japanese: crate::util::JishoJapanese) -> Image {
-        let mut surface = Surface::new_raster_n32_premul((JishoCommand::IMAGE_WIDTH, JishoCommand::IMAGE_HEIGHT)).unwrap();
+    pub fn generate_furigana(japanese: &JishoJapanese) -> Image {
+        let mut surface =
+            Surface::new_raster_n32_premul((Self::IMAGE_WIDTH, Self::IMAGE_HEIGHT)).unwrap();
         let canvas = surface.canvas();
-        let text = japanese.word.unwrap_or(japanese.reading);
+        let text = japanese.word.as_ref().unwrap_or(&japanese.reading);
 
-        canvas.clear(JishoCommand::BACKGROUND_COLOR);
+        canvas.clear(Self::BACKGROUND_COLOR);
 
         let mut text_style = TextStyle::new();
         text_style
-            .set_color(JishoCommand::TEXT_COLOR)
-            .set_font_size(JishoCommand::TEXT_SIZE)
+            .set_color(Self::TEXT_COLOR)
+            .set_font_size(Self::TEXT_SIZE)
             .set_font_families(crate::util::FONT_NAMES);
 
         let mut paragraph_style = ParagraphStyle::new();
@@ -64,17 +166,24 @@ impl JishoCommand<'_> {
         let mut paragraph_builder =
             ParagraphBuilder::new(&paragraph_style, crate::util::get_font_collection());
 
-        let measure = measure_text_width(&mut paragraph_builder, &text, (JishoCommand::IMAGE_WIDTH - JishoCommand::MARGIN) as f32);
-        let size: f32 = if measure >= JishoCommand::IMAGE_WIDTH.into() {
-            (((JishoCommand::IMAGE_WIDTH - JishoCommand::MARGIN) as f64 / measure) * JishoCommand::TEXT_SIZE as f64) as f32
+        let measure = measure_text_width(
+            &mut paragraph_builder,
+            text,
+            (Self::IMAGE_WIDTH - Self::MARGIN) as f32,
+        );
+        let size: f32 = if measure >= Self::IMAGE_WIDTH.into() {
+            (((Self::IMAGE_WIDTH - Self::MARGIN) as f64 / measure) * Self::TEXT_SIZE as f64) as f32
         } else {
-            JishoCommand::TEXT_SIZE
+            Self::TEXT_SIZE
         };
 
         text_style.set_font_size(size);
-        let mut paragraph = paragraph_builder.push_style(&text_style).add_text(text.as_str()).build();
-        paragraph.layout((JishoCommand::IMAGE_WIDTH - JishoCommand::MARGIN) as f32);
-        paragraph.paint(canvas, (0, (JishoCommand::IMAGE_HEIGHT / 2) - (size / 2.0) as i32));
+        let mut paragraph = paragraph_builder
+            .push_style(&text_style)
+            .add_text(text.as_str())
+            .build();
+        paragraph.layout((Self::IMAGE_WIDTH - Self::MARGIN) as f32);
+        paragraph.paint(canvas, (0, (Self::IMAGE_HEIGHT / 2) - (size / 2.0) as i32));
         if japanese.furigana.is_empty() {
             return surface.image_snapshot();
         }
@@ -94,30 +203,32 @@ impl JishoCommand<'_> {
 
         for (index, furigana) in japanese.furigana.iter().enumerate() {
             paragraph_builder.reset();
-            text_style.set_font_size(JishoCommand::TEXT_SIZE / 2.0);
+            text_style.set_font_size(Self::TEXT_SIZE / 2.0);
             paragraph_builder.push_style(&text_style);
             let furigana_measure = measure_text_width(
                 &mut paragraph_builder,
                 furigana,
-                (JishoCommand::IMAGE_WIDTH - JishoCommand::MARGIN) as f32,
+                (Self::IMAGE_WIDTH - Self::MARGIN) as f32,
             );
             let furigana_size = if furigana_measure < size.into() {
                 16.0
             } else {
-                (size as f64 / furigana_measure) as f32 * (JishoCommand::TEXT_SIZE / 2f32)
+                (size as f64 / furigana_measure) as f32 * (Self::TEXT_SIZE / 2f32)
             };
             text_style.set_font_size(furigana_size);
-            let mut paragraph = paragraph_builder.push_style(&text_style).add_text(furigana).build();
-            paragraph.layout((JishoCommand::IMAGE_WIDTH - JishoCommand::MARGIN) as f32);
+            let mut paragraph = paragraph_builder
+                .push_style(&text_style)
+                .add_text(furigana)
+                .build();
+            paragraph.layout((Self::IMAGE_WIDTH - Self::MARGIN) as f32);
             paragraph.paint(
                 canvas,
                 (
                     first_char_pos_x + (index as f32 * size),
-                    (JishoCommand::IMAGE_HEIGHT as f32 / 2.0) - size,
+                    (Self::IMAGE_HEIGHT as f32 / 2.0) - size,
                 ),
             )
         }
         surface.image_snapshot()
     }
 }
-

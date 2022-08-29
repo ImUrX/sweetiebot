@@ -790,6 +790,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "itertools"
+version = "0.10.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a9a9d19fa1e79b6215ff29b9d6880b706147f16e9b1dbb1e4e5947b5b02bc5e3"
+dependencies = [
+ "either",
+]
+
+[[package]]
 name = "itoa"
 version = "0.4.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1792,6 +1801,7 @@ dependencies = [
  "dotenv",
  "futures",
  "include_dir",
+ "itertools 0.10.3",
  "lazy_static",
  "libvips",
  "reqwest",
@@ -1810,6 +1820,7 @@ dependencies = [
  "twilight-model",
  "twilight-standby",
  "twilight-util",
+ "twilight-validate",
  "urlencoding",
  "wana_kana",
 ]
@@ -2345,7 +2356,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "5422b401e00b7e3d45c55756298aeda568afe57b0380406d3530d64c243d8c00"
 dependencies = [
  "fnv",
- "itertools",
+ "itertools 0.8.2",
  "lazy_static",
 ]
 

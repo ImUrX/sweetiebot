@@ -19,7 +19,7 @@ use twilight_model::{
         interaction::{Interaction, InteractionData},
     },
     channel::embed::Embed,
-    http::interaction::{InteractionResponse, InteractionResponseType},
+    http::{interaction::{InteractionResponse, InteractionResponseType}, attachment::Attachment},
     id::marker::ApplicationMarker,
     id::Id,
 };
@@ -81,6 +81,7 @@ pub fn measure_text_width<'a>(
 
 pub struct EmbedList {
     pub embeds: Vec<Embed>,
+    pub attachments: Vec<Option<Attachment>>,
     pub index: Arc<usize>,
     pub duration: u64,
     http: Arc<HttpClient>,
@@ -96,6 +97,7 @@ impl EmbedList {
     ) -> Self {
         EmbedList {
             embeds: Vec::new(),
+            attachments: Vec::new(),
             index: Arc::new(0),
             duration: 70,
             http,
@@ -104,8 +106,9 @@ impl EmbedList {
         }
     }
 
-    pub fn add(&mut self, embed: Embed) {
+    pub fn add(&mut self, embed: Embed, attachment: Option<Attachment>) {
         self.embeds.push(embed);
+        self.attachments.push(attachment);
     }
 
     pub async fn reply(
@@ -132,6 +135,7 @@ impl EmbedList {
         let first = builder
             .clone()
             .embeds([self.embeds[0].clone()])
+            .attachments(self.attachments[0].clone())
             .components([Component::ActionRow(Self::generate_row(true, false))]);
         let response = InteractionResponse {
             kind: InteractionResponseType::ChannelMessageWithSource,

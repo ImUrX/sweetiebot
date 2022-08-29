@@ -10,6 +10,8 @@ use twilight_gateway::{
     Event, Intents,
 };
 use twilight_http::Client as HttpClient;
+use twilight_model::id::{marker::ApplicationMarker, Id};
+use twilight_standby::Standby;
 
 #[tokio::main]
 async fn main() -> Result<()> {
@@ -84,4 +86,10 @@ async fn handle_event(shard_id: u64, event: Event, http: Arc<HttpClient>) -> Res
     }
 
     Ok(())
+}
+
+pub struct ClusterData {
+    pub http: Arc<HttpClient>,
+    pub application_id: Id<ApplicationMarker>,
+    pub standby: Arc<Standby>,
 }
