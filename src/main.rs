@@ -47,7 +47,7 @@ async fn main() -> Result<()> {
     // one, also use Arc such that it can be cloned to other threads.
     let http = Arc::new(HttpClient::new(token));
 
-    let application_id = {
+    let _application_id = {
         let response = http.current_user_application().exec().await?;
 
         response.model().await?.id

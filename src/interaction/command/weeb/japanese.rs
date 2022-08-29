@@ -1,4 +1,4 @@
-use std::{borrow::Cow, io::Read};
+use std::{borrow::Cow};
 
 use anyhow::{ensure, Result};
 use itertools::Itertools;
@@ -11,7 +11,6 @@ use twilight_model::{
     application::interaction::Interaction, channel::embed::EmbedField, http::attachment::Attachment,
 };
 use twilight_util::builder::{
-    command::AttachmentBuilder,
     embed::{EmbedBuilder, EmbedFieldBuilder, ImageSource},
 };
 use twilight_validate::embed::FIELD_VALUE_LENGTH;
@@ -31,7 +30,7 @@ pub struct JishoCommand<'a> {
 }
 
 impl JishoCommand<'_> {
-    async fn run(&self, info: ClusterData, interaction: Interaction) -> Result<()> {
+    async fn run(&self, _info: ClusterData, _interaction: Interaction) -> Result<()> {
         Ok(())
     }
 
