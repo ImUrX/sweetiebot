@@ -18,7 +18,7 @@ pub struct JishoCommand<'a> {
 }
 
 impl JishoCommand<'_> {
-    fn run(&self) {
+    fn run(&self, ) {
         
     }
 
