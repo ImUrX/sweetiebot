@@ -27,7 +27,11 @@ use twilight_standby::Standby;
 use twilight_util::builder::InteractionResponseDataBuilder;
 use urlencoding::encode;
 
-static VALID_FONTS: &[&str] = &["ttf", "ttc"];
+static VALID_FONTS: &[&str] = &["ttf", "ttc", "otf"];
+pub static DEFERRED_RESPONSE: InteractionResponse = InteractionResponse {
+    kind: InteractionResponseType::DeferredChannelMessageWithSource,
+    data: None
+};
 
 pub static ASSETS_DIR: Dir = include_dir!("$CARGO_MANIFEST_DIR/assets");
 lazy_static! {
@@ -121,7 +125,8 @@ impl EmbedList {
         // Just send the embed without any component
         if self.embeds.len() == 1 {
             let client = self.http.interaction(self.application_id);
-            let builder = builder.embeds(self.embeds);
+            // FIXME: Cloning
+            let builder = builder.embeds(self.embeds).attachments(self.attachments.iter().filter_map(|x| x.to_owned()));
             let response = InteractionResponse {
                 kind: InteractionResponseType::ChannelMessageWithSource,
                 data: Some(builder.build()),
@@ -187,11 +192,14 @@ impl EmbedList {
                             index == list.embeds.len(),
                         ))];
                         let embeds = &list.embeds[index..(index + 1)];
+                        //FIXME: Copying attachments just to pass them...
+                        let attachments: Vec<Attachment> = list.attachments[index..(index + 1)].iter().filter_map(|x| x.to_owned()).collect();
                         let _update = list
                             .http
                             .interaction(list.application_id)
                             .update_response(&token)
                             .embeds(Some(embeds))?
+                            .attachments(&attachments)?
                             .components(Some(&action_row))?
                             .exec()
                             .await?;

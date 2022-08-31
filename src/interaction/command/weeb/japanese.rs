@@ -8,15 +8,15 @@ use skia_safe::{
 };
 use twilight_interactions::command::{CommandModel, CreateCommand};
 use twilight_model::{
-    application::interaction::Interaction, channel::embed::EmbedField, http::attachment::Attachment,
+    application::interaction::Interaction, channel::embed::EmbedField, http::{attachment::Attachment, interaction::{InteractionResponse, InteractionResponseType}},
 };
 use twilight_util::builder::{
-    embed::{EmbedBuilder, EmbedFieldBuilder, ImageSource},
+    embed::{EmbedBuilder, EmbedFieldBuilder, ImageSource}, InteractionResponseDataBuilder,
 };
 use twilight_validate::embed::FIELD_VALUE_LENGTH;
 
 use crate::{
-    util::{measure_text_width, JishoJapanese, JishoWord},
+    util::{measure_text_width, jisho_words, JishoJapanese, JishoWord, DEFERRED_RESPONSE, EmbedList},
     ClusterData,
 };
 
@@ -30,11 +30,20 @@ pub struct JishoCommand<'a> {
 }
 
 impl JishoCommand<'_> {
-    async fn run(&self, _info: ClusterData, _interaction: Interaction) -> Result<()> {
+    async fn run(&self, info: ClusterData, interaction: Interaction) -> Result<()> {
+        info.http.interaction(interaction.application_id).create_response(interaction.id, &interaction.token, &DEFERRED_RESPONSE).exec().await?;
+
+        let res = jisho_words(&self.word).await?;
+        let mut embed_list = EmbedList::new(info.http.clone(), interaction.application_id, info.standby.clone());
+        for data in res.data.iter().take(12) {
+            let (embed, attachment) = Self::make_embed(data)?;
+            embed_list.add(embed.build(), Some(attachment));
+        }
+        embed_list.reply(interaction, InteractionResponseDataBuilder::new()).await?;
         Ok(())
     }
 
-    fn make_embed(word: JishoWord) -> Result<(EmbedBuilder, Attachment)> {
+    fn make_embed(word: &JishoWord) -> Result<(EmbedBuilder, Attachment)> {
         let mut embed = EmbedBuilder::new()
             .title(word.slug.clone())
             .url(format!("https://jisho.org/word/{}", word.slug))
@@ -115,7 +124,7 @@ impl JishoCommand<'_> {
         let furigana = Self::generate_furigana(&word.japanese[0])
             .encode_to_data(EncodedImageFormat::PNG)
             .unwrap();
-        // Converting the SkData to a Vec this way makes a copy of the whole &[u8], not nice.
+        //FIXME: Converting the SkData to a Vec this way makes a copy of the whole &[u8], not nice.
         Ok((
             embed,
             Attachment::from_bytes("furigana.png".to_string(), furigana.to_vec(), 1),
