@@ -15,7 +15,7 @@ use twilight_http::Client as HttpClient;
 use twilight_model::id::{marker::{ApplicationMarker, UserMarker}, Id};
 use twilight_standby::Standby;
 
-use crate::util::jisho_words;
+
 
 #[tokio::main]
 async fn main() -> Result<()> {

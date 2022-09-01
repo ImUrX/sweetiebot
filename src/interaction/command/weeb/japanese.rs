@@ -8,7 +8,7 @@ use skia_safe::{
 };
 use twilight_interactions::command::{CommandModel, CreateCommand};
 use twilight_model::{
-    application::interaction::Interaction, channel::embed::EmbedField, http::{attachment::Attachment, interaction::{InteractionResponse, InteractionResponseType}},
+    application::interaction::Interaction, channel::embed::EmbedField, http::{attachment::Attachment},
 };
 use twilight_util::builder::{
     embed::{EmbedBuilder, EmbedFieldBuilder, ImageSource}, InteractionResponseDataBuilder,
@@ -16,7 +16,7 @@ use twilight_util::builder::{
 use twilight_validate::embed::FIELD_VALUE_LENGTH;
 
 use crate::{
-    util::{measure_text_width, jisho_words, JishoJapanese, JishoWord, DEFERRED_RESPONSE, EmbedList},
+    util::{measure_text_width, jisho_words, JishoJapanese, JishoWord, EmbedList},
     ClusterData,
 };
 
@@ -49,7 +49,7 @@ impl JishoCommand<'_> {
             .url(format!("https://jisho.org/word/{}", word.slug))
             .thumbnail(ImageSource::attachment("furigana.png")?);
 
-        let tags = Self::process_tags(&word).join(" - ");
+        let tags = Self::process_tags(word).join(" - ");
         if !tags.is_empty() {
             embed = embed.description(format!("**{}**", tags))
         }
@@ -157,7 +157,7 @@ impl JishoCommand<'_> {
         let mut surface =
             Surface::new_raster_n32_premul((Self::IMAGE_WIDTH, Self::IMAGE_HEIGHT)).unwrap();
         let canvas = surface.canvas();
-        let text = japanese.word.as_ref().unwrap_or(japanese.reading.as_ref().unwrap());
+        let text = japanese.word.as_ref().unwrap_or_else(|| japanese.reading.as_ref().unwrap());
 
         canvas.clear(Self::BACKGROUND_COLOR);
 

@@ -1,7 +1,7 @@
 use std::{sync::Arc, time::Duration};
 
 use anyhow::{ensure, Result};
-use futures::{stream::TryStreamExt, StreamExt, TryFutureExt};
+use futures::{stream::TryStreamExt, StreamExt};
 use include_dir::{include_dir, Dir};
 use lazy_static::lazy_static;
 use scraper::{Html, Selector};

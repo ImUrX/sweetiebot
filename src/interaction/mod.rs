@@ -1,7 +1,7 @@
 use anyhow::{Result, bail};
-use twilight_gateway::Event;
-use twilight_interactions::command::{ApplicationCommandData, CreateCommand, CommandModel};
-use twilight_model::{application::interaction::{InteractionType, InteractionData, application_command::CommandData}, gateway::payload::incoming::InteractionCreate};
+
+use twilight_interactions::command::{CommandModel};
+use twilight_model::{application::interaction::{InteractionType, InteractionData}, gateway::payload::incoming::InteractionCreate};
 
 use crate::ClusterData;
 
