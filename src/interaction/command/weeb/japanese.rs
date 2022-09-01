@@ -30,8 +30,8 @@ pub struct JishoCommand<'a> {
 }
 
 impl JishoCommand<'_> {
-    async fn run(&self, info: ClusterData, interaction: Interaction) -> Result<()> {
-        info.http.interaction(interaction.application_id).create_response(interaction.id, &interaction.token, &DEFERRED_RESPONSE).exec().await?;
+    pub async fn run(self, info: ClusterData, interaction: &Interaction) -> Result<()> {
+        //info.http.interaction(interaction.application_id).create_response(interaction.id, &interaction.token, &DEFERRED_RESPONSE).exec().await?;
 
         let res = jisho_words(&self.word).await?;
         let mut embed_list = EmbedList::new(info.http.clone(), interaction.application_id, info.standby.clone());
@@ -43,7 +43,7 @@ impl JishoCommand<'_> {
         Ok(())
     }
 
-    fn make_embed(word: &JishoWord) -> Result<(EmbedBuilder, Attachment)> {
+    pub fn make_embed(word: &JishoWord) -> Result<(EmbedBuilder, Attachment)> {
         let mut embed = EmbedBuilder::new()
             .title(word.slug.clone())
             .url(format!("https://jisho.org/word/{}", word.slug))
@@ -110,7 +110,8 @@ impl JishoCommand<'_> {
                 .filter_map(|x| {
                     x.word
                         .as_ref()
-                        .map(|writing| format!("{} 【{}】", writing, x.reading))
+                        .and(x.reading.as_ref())
+                        .map(|reading| format!("{} 【{}】", x.word.as_ref().unwrap(), reading))
                 })
                 .join("、");
 
@@ -133,7 +134,7 @@ impl JishoCommand<'_> {
 
     fn process_tags(word: &JishoWord) -> Vec<String> {
         let mut vec = Vec::new();
-        if word.is_common {
+        if word.is_common.unwrap_or(false) {
             vec.push("common word".to_owned());
         }
         for tag in word.tags.iter() {
@@ -156,7 +157,7 @@ impl JishoCommand<'_> {
         let mut surface =
             Surface::new_raster_n32_premul((Self::IMAGE_WIDTH, Self::IMAGE_HEIGHT)).unwrap();
         let canvas = surface.canvas();
-        let text = japanese.word.as_ref().unwrap_or(&japanese.reading);
+        let text = japanese.word.as_ref().unwrap_or(japanese.reading.as_ref().unwrap());
 
         canvas.clear(Self::BACKGROUND_COLOR);
 

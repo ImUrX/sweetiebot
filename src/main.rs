@@ -1,8 +1,10 @@
+#![feature(get_mut_unchecked)]
 mod interaction;
 pub mod util;
 use anyhow::Result;
 use dotenv::dotenv;
 use futures::stream::StreamExt;
+use interaction::handle_interaction;
 use std::{env, sync::Arc};
 use twilight_cache_inmemory::{InMemoryCache, ResourceType};
 use twilight_gateway::{
@@ -10,8 +12,10 @@ use twilight_gateway::{
     Event, Intents,
 };
 use twilight_http::Client as HttpClient;
-use twilight_model::id::{marker::ApplicationMarker, Id};
+use twilight_model::id::{marker::{ApplicationMarker, UserMarker}, Id};
 use twilight_standby::Standby;
+
+use crate::util::jisho_words;
 
 #[tokio::main]
 async fn main() -> Result<()> {
@@ -46,10 +50,14 @@ async fn main() -> Result<()> {
     // The http client is seperate from the gateway, so startup a new
     // one, also use Arc such that it can be cloned to other threads.
     let http = Arc::new(HttpClient::new(token));
+    let standby = Arc::new(Standby::new());
 
-    let _application_id = {
+    let application_id = {
         let response = http.current_user_application().exec().await?;
-
+        response.model().await?.id
+    };
+    let bot_id = {
+        let response = http.current_user().exec().await?;
         response.model().await?.id
     };
 
@@ -58,6 +66,12 @@ async fn main() -> Result<()> {
         .resource_types(ResourceType::MESSAGE)
         .build();
 
+    let info = ClusterData {
+        http: http.clone(),
+        standby: standby.clone(),
+        bot_id,
+        application_id,
+    };
     // Startup an event loop to process each event in the event stream as they
     // come in.
     while let Some((shard_id, event)) = events.next().await {
@@ -65,31 +79,40 @@ async fn main() -> Result<()> {
         cache.update(&event);
 
         // Spawn a new task to handle the event
-        tokio::spawn(handle_event(shard_id, event, Arc::clone(&http)));
+        tokio::spawn(handle_event(shard_id, event, info.clone()));
     }
 
     Ok(())
 }
 
-async fn handle_event(shard_id: u64, event: Event, http: Arc<HttpClient>) -> Result<()> {
+async fn handle_event(shard_id: u64, event: Event, info: ClusterData) -> Result<()> {
+    let _results = info.standby.process(&event);
     match event {
-        Event::MessageCreate(msg) if msg.content == "!ping" => {
-            http.create_message(msg.channel_id)
+        Event::MessageCreate(msg) if msg.content.ends_with("ping") => {
+            info.http.create_message(msg.channel_id)
                 .content("Pong!")?
                 .exec()
                 .await?;
         }
-        Event::ShardConnected(_) => {
-            println!("Connected on shard {}", shard_id);
-        }
+        Event::InteractionCreate(interaction) => {
+            let handler = handle_interaction(shard_id, interaction.clone(), info.clone()).await;
+            if let Err(err) = handler {
+                eprintln!("Error found on interaction {:?}\nError: {:?}", interaction, err);
+            }
+        },
+        Event::ShardConnected(_) => println!("Connected on shard {}", shard_id),
+        Event::ShardDisconnected(reason) => println!("Disconnected on shard {} because of {:?}", shard_id, reason.reason),
         _ => {}
     }
+    
 
     Ok(())
 }
 
+#[derive(Clone)]
 pub struct ClusterData {
     pub http: Arc<HttpClient>,
     pub application_id: Id<ApplicationMarker>,
+    pub bot_id: Id<UserMarker>,
     pub standby: Arc<Standby>,
 }

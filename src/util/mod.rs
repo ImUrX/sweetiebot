@@ -32,6 +32,10 @@ pub static DEFERRED_RESPONSE: InteractionResponse = InteractionResponse {
     kind: InteractionResponseType::DeferredChannelMessageWithSource,
     data: None
 };
+pub static DEFERRED_COMPONENT_RESPONSE: InteractionResponse = InteractionResponse {
+    kind: InteractionResponseType::DeferredUpdateMessage,
+    data: None
+};
 
 pub static ASSETS_DIR: Dir = include_dir!("$CARGO_MANIFEST_DIR/assets");
 lazy_static! {
@@ -117,10 +121,10 @@ impl EmbedList {
 
     pub async fn reply(
         self,
-        interaction: Interaction,
+        interaction: &Interaction,
         builder: InteractionResponseDataBuilder,
     ) -> Result<()> {
-        ensure!(self.embeds.is_empty(), "There is no embeds to send!");
+        ensure!(!self.embeds.is_empty(), "There is no embeds to send!");
 
         // Just send the embed without any component
         if self.embeds.len() == 1 {
@@ -152,12 +156,10 @@ impl EmbedList {
             .exec()
             .await?;
 
+        let message_id = self.http.interaction(self.application_id).response(&interaction.token).exec().await?.model().await?.id;
         // Make stream based on the back and next buttons
         let components = self.standby.wait_for_component_stream(
-            interaction
-                .message
-                .expect("The interaction should be a message!")
-                .id,
+            message_id,
             |event: &Interaction| {
                 if let Some(InteractionData::MessageComponent(data)) = &event.data {
                     data.custom_id == "back" || data.custom_id == "next"
@@ -176,13 +178,19 @@ impl EmbedList {
                 let token = interaction.token.clone();
                 async move {
                     if let Some(InteractionData::MessageComponent(data)) = component.data {
+                        list.http.interaction(list.application_id).create_response(component.id, &component.token, &DEFERRED_COMPONENT_RESPONSE).exec().await?;
                         let index = match &*data.custom_id {
+                            // we are not parallelizing the stream, so the arc should only be touched once per time so no deadlocks
                             "next" => {
-                                *Arc::get_mut(&mut index).unwrap() += 1;
+                                unsafe {
+                                    *Arc::get_mut_unchecked(&mut index) += 1;
+                                }
                                 *index
                             }
                             "back" => {
-                                *Arc::get_mut(&mut index).unwrap() -= 1;
+                                unsafe {
+                                    *Arc::get_mut_unchecked(&mut index) -= 1;
+                                }
                                 *index
                             }
                             _ => panic!("unhandled custom id!"),
@@ -250,11 +258,13 @@ impl EmbedList {
 
 pub async fn jisho_words(keyword: &str) -> Result<JishoResult> {
     let client = reqwest::Client::new();
-    let req = client
+    let mut res = client
         .get("https://jisho.org/api/v1/search/words")
         .query(&[("keyword", keyword)])
         .send()
-        .and_then(|x| x.json::<JishoResult>());
+        .await?
+        .json::<JishoResult>()
+        .await?;
 
     let html = client
         .get(format!("https://jisho.org/search/{}", encode(keyword)))
@@ -274,7 +284,7 @@ pub async fn jisho_words(keyword: &str) -> Result<JishoResult> {
                 .collect(),
         );
     }
-    let mut res = req.await?;
+
     for (data, furigana) in res.data.iter_mut().zip(furiganas) {
         data.japanese[0].furigana = furigana;
     }
@@ -290,20 +300,21 @@ pub struct JishoResult {
 #[derive(Deserialize, Debug)]
 pub struct JishoWord {
     pub slug: String,
-    pub is_common: bool,
+    pub is_common: Option<bool>,
     pub tags: Vec<String>,
     pub jlpt: Vec<String>,
     pub japanese: Vec<JishoJapanese>,
     pub senses: Vec<JishoSense>,
+    #[serde(skip_deserializing)]
     pub attribution: JishoWordAttribution,
     //audio: JishoWordAudio
 }
 
-#[derive(Deserialize, Debug)]
+#[derive(Deserialize, Debug, Default)]
 pub struct JishoWordAttribution {
     pub jmdict: bool,
     pub jmnedict: bool,
-    pub dbpedia: bool,
+    pub dbpedia: Option<String>,
 }
 
 #[derive(Deserialize, Debug)]
@@ -320,7 +331,7 @@ pub struct JishoMetadata {
 #[derive(Deserialize, Debug)]
 pub struct JishoJapanese {
     pub word: Option<String>,
-    pub reading: String,
+    pub reading: Option<String>,
     #[serde(default)]
     pub furigana: Vec<String>,
 }
