@@ -1,7 +1,9 @@
-use std::{sync::Arc, time::Duration};
+use std::{io::Cursor, sync::Arc, time::Duration};
 
 use anyhow::{ensure, Result};
+use bytes::Bytes;
 use futures::{stream::TryStreamExt, StreamExt};
+use image::{imageops::FilterType, io::Reader as ImageReader};
 use include_dir::{include_dir, Dir};
 use lazy_static::lazy_static;
 use scraper::{Html, Selector};
@@ -88,6 +90,22 @@ pub fn measure_text_width<'a>(
     let measure = paragraph.get_line_metrics();
     paragraph_builder.reset();
     measure[0].width
+}
+
+pub fn censor_image(bytes: Bytes) -> Result<Bytes> {
+    let img = ImageReader::new(Cursor::new(bytes))
+        .with_guessed_format()?
+        .decode()?;
+    let ratio = img.width() / 18;
+    let resize = img
+        .resize(18, img.height() / ratio, FilterType::Nearest)
+        .resize(img.width(), img.height(), FilterType::Nearest);
+    let mut new_bytes: Vec<u8> = Vec::new();
+    resize.write_to(
+        &mut Cursor::new(&mut new_bytes),
+        image::ImageOutputFormat::Png,
+    )?;
+    Ok(new_bytes.into())
 }
 
 pub struct EmbedList {
