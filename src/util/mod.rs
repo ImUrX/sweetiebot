@@ -19,7 +19,10 @@ use twilight_model::{
         interaction::{Interaction, InteractionData},
     },
     channel::embed::Embed,
-    http::{interaction::{InteractionResponse, InteractionResponseType}, attachment::Attachment},
+    http::{
+        attachment::Attachment,
+        interaction::{InteractionResponse, InteractionResponseType},
+    },
     id::marker::ApplicationMarker,
     id::Id,
 };
@@ -30,11 +33,11 @@ use urlencoding::encode;
 static VALID_FONTS: &[&str] = &["ttf", "ttc", "otf"];
 pub static DEFERRED_RESPONSE: InteractionResponse = InteractionResponse {
     kind: InteractionResponseType::DeferredChannelMessageWithSource,
-    data: None
+    data: None,
 };
 pub static DEFERRED_COMPONENT_RESPONSE: InteractionResponse = InteractionResponse {
     kind: InteractionResponseType::DeferredUpdateMessage,
-    data: None
+    data: None,
 };
 
 pub static ASSETS_DIR: Dir = include_dir!("$CARGO_MANIFEST_DIR/assets");
@@ -130,7 +133,9 @@ impl EmbedList {
         if self.embeds.len() == 1 {
             let client = self.http.interaction(self.application_id);
             // FIXME: Cloning
-            let builder = builder.embeds(self.embeds).attachments(self.attachments.iter().filter_map(|x| x.to_owned()));
+            let builder = builder
+                .embeds(self.embeds)
+                .attachments(self.attachments.iter().filter_map(|x| x.to_owned()));
             let response = InteractionResponse {
                 kind: InteractionResponseType::ChannelMessageWithSource,
                 data: Some(builder.build()),
@@ -156,18 +161,25 @@ impl EmbedList {
             .exec()
             .await?;
 
-        let message_id = self.http.interaction(self.application_id).response(&interaction.token).exec().await?.model().await?.id;
+        let message_id = self
+            .http
+            .interaction(self.application_id)
+            .response(&interaction.token)
+            .exec()
+            .await?
+            .model()
+            .await?
+            .id;
         // Make stream based on the back and next buttons
-        let components = self.standby.wait_for_component_stream(
-            message_id,
-            |event: &Interaction| {
-                if let Some(InteractionData::MessageComponent(data)) = &event.data {
-                    data.custom_id == "back" || data.custom_id == "next"
-                } else {
-                    false
-                }
-            },
-        );
+        let components =
+            self.standby
+                .wait_for_component_stream(message_id, |event: &Interaction| {
+                    if let Some(InteractionData::MessageComponent(data)) = &event.data {
+                        data.custom_id == "back" || data.custom_id == "next"
+                    } else {
+                        false
+                    }
+                });
 
         // Try for each the stream because we need to time out of it after the specified time
         let process = components
@@ -178,7 +190,15 @@ impl EmbedList {
                 let token = interaction.token.clone();
                 async move {
                     if let Some(InteractionData::MessageComponent(data)) = component.data {
-                        list.http.interaction(list.application_id).create_response(component.id, &component.token, &DEFERRED_COMPONENT_RESPONSE).exec().await?;
+                        list.http
+                            .interaction(list.application_id)
+                            .create_response(
+                                component.id,
+                                &component.token,
+                                &DEFERRED_COMPONENT_RESPONSE,
+                            )
+                            .exec()
+                            .await?;
                         let index = match &*data.custom_id {
                             // we are not parallelizing the stream, so the arc should only be touched once per time so no deadlocks
                             "next" => {
@@ -201,7 +221,10 @@ impl EmbedList {
                         ))];
                         let embeds = &list.embeds[index..(index + 1)];
                         //FIXME: Copying attachments just to pass them...
-                        let attachments: Vec<Attachment> = list.attachments[index..(index + 1)].iter().filter_map(|x| x.to_owned()).collect();
+                        let attachments: Vec<Attachment> = list.attachments[index..(index + 1)]
+                            .iter()
+                            .filter_map(|x| x.to_owned())
+                            .collect();
                         let _update = list
                             .http
                             .interaction(list.application_id)

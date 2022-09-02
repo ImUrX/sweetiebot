@@ -12,10 +12,11 @@ use twilight_gateway::{
     Event, Intents,
 };
 use twilight_http::Client as HttpClient;
-use twilight_model::id::{marker::{ApplicationMarker, UserMarker}, Id};
+use twilight_model::id::{
+    marker::{ApplicationMarker, UserMarker},
+    Id,
+};
 use twilight_standby::Standby;
-
-
 
 #[tokio::main]
 async fn main() -> Result<()> {
@@ -89,7 +90,8 @@ async fn handle_event(shard_id: u64, event: Event, info: ClusterData) -> Result<
     let _results = info.standby.process(&event);
     match event {
         Event::MessageCreate(msg) if msg.content.ends_with("ping") => {
-            info.http.create_message(msg.channel_id)
+            info.http
+                .create_message(msg.channel_id)
                 .content("Pong!")?
                 .exec()
                 .await?;
@@ -97,14 +99,19 @@ async fn handle_event(shard_id: u64, event: Event, info: ClusterData) -> Result<
         Event::InteractionCreate(interaction) => {
             let handler = handle_interaction(shard_id, interaction.clone(), info.clone()).await;
             if let Err(err) = handler {
-                eprintln!("Error found on interaction {:?}\nError: {:?}", interaction, err);
+                eprintln!(
+                    "Error found on interaction {:?}\nError: {:?}",
+                    interaction, err
+                );
             }
-        },
+        }
         Event::ShardConnected(_) => println!("Connected on shard {}", shard_id),
-        Event::ShardDisconnected(reason) => println!("Disconnected on shard {} because of {:?}", shard_id, reason.reason),
+        Event::ShardDisconnected(reason) => println!(
+            "Disconnected on shard {} because of {:?}",
+            shard_id, reason.reason
+        ),
         _ => {}
     }
-    
 
     Ok(())
 }

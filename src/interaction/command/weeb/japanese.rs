@@ -1,4 +1,4 @@
-use std::{borrow::Cow};
+use std::borrow::Cow;
 
 use anyhow::{ensure, Result};
 use itertools::Itertools;
@@ -6,17 +6,24 @@ use skia_safe::{
     textlayout::{ParagraphBuilder, ParagraphStyle, TextAlign, TextStyle},
     EncodedImageFormat, Image, Surface,
 };
-use twilight_interactions::command::{CommandModel, CreateCommand};
+use twilight_interactions::command::{AutocompleteValue, CommandModel, CreateCommand};
 use twilight_model::{
-    application::interaction::Interaction, channel::embed::EmbedField, http::{attachment::Attachment},
+    application::{command::CommandOptionChoice, interaction::Interaction},
+    channel::embed::EmbedField,
+    http::{
+        attachment::Attachment,
+        interaction::{InteractionResponse, InteractionResponseType},
+    },
 };
 use twilight_util::builder::{
-    embed::{EmbedBuilder, EmbedFieldBuilder, ImageSource}, InteractionResponseDataBuilder,
+    embed::{EmbedBuilder, EmbedFieldBuilder, ImageSource},
+    InteractionResponseDataBuilder,
 };
 use twilight_validate::embed::FIELD_VALUE_LENGTH;
+use wana_kana::{is_hiragana::is_hiragana, to_hiragana::to_hiragana};
 
 use crate::{
-    util::{measure_text_width, jisho_words, JishoJapanese, JishoWord, EmbedList},
+    util::{jisho_words, measure_text_width, EmbedList, JishoJapanese, JishoWord},
     ClusterData,
 };
 
@@ -24,9 +31,56 @@ use crate::{
 #[command(name = "japanese", desc = "Searches in Jisho for the word")]
 pub struct JishoCommand<'a> {
     #[command(
-        desc = "Can be a kanji, a japanese word or even an english word (Same search features as Jisho)"
+        desc = "Can be a kanji, a japanese word or even an english word (Same search features as Jisho)",
+        autocomplete = true
     )]
     word: Cow<'a, str>,
+}
+
+#[derive(CommandModel)]
+#[command(autocomplete = true)]
+pub struct JishoCommandAutocomplete {
+    word: AutocompleteValue<String>,
+}
+
+impl JishoCommandAutocomplete {
+    pub async fn run(self, info: ClusterData, interaction: &Interaction) -> Result<()> {
+        let mut vec = Vec::new();
+        if let AutocompleteValue::Focused(input) = &self.word {
+            if input.is_empty() {
+                vec.push(CommandOptionChoice::String {
+                    name: "例え".to_string(),
+                    name_localizations: None,
+                    value: "例え".to_string(),
+                });
+            } else {
+                vec.push(CommandOptionChoice::String {
+                    name: input.clone(),
+                    name_localizations: None,
+                    value: input.clone(),
+                });
+                if is_hiragana(&to_hiragana(input)) {
+                    let quoted = format!("\"{}\"", input);
+                    vec.push(CommandOptionChoice::String {
+                        name: quoted.clone(),
+                        name_localizations: None,
+                        value: quoted,
+                    });
+                }
+            }
+        }
+        let response = InteractionResponse {
+            kind: InteractionResponseType::ApplicationCommandAutocompleteResult,
+            data: Some(InteractionResponseDataBuilder::new().choices(vec).build()),
+        };
+        info.http
+            .interaction(info.application_id)
+            .create_response(interaction.id, &interaction.token, &response)
+            .exec()
+            .await?;
+
+        Ok(())
+    }
 }
 
 impl JishoCommand<'_> {
@@ -34,12 +88,18 @@ impl JishoCommand<'_> {
         //info.http.interaction(interaction.application_id).create_response(interaction.id, &interaction.token, &DEFERRED_RESPONSE).exec().await?;
 
         let res = jisho_words(&self.word).await?;
-        let mut embed_list = EmbedList::new(info.http.clone(), interaction.application_id, info.standby.clone());
+        let mut embed_list = EmbedList::new(
+            info.http.clone(),
+            interaction.application_id,
+            info.standby.clone(),
+        );
         for data in res.data.iter().take(12) {
             let (embed, attachment) = Self::make_embed(data)?;
             embed_list.add(embed.build(), Some(attachment));
         }
-        embed_list.reply(interaction, InteractionResponseDataBuilder::new()).await?;
+        embed_list
+            .reply(interaction, InteractionResponseDataBuilder::new())
+            .await?;
         Ok(())
     }
 
@@ -157,7 +217,10 @@ impl JishoCommand<'_> {
         let mut surface =
             Surface::new_raster_n32_premul((Self::IMAGE_WIDTH, Self::IMAGE_HEIGHT)).unwrap();
         let canvas = surface.canvas();
-        let text = japanese.word.as_ref().unwrap_or_else(|| japanese.reading.as_ref().unwrap());
+        let text = japanese
+            .word
+            .as_ref()
+            .unwrap_or_else(|| japanese.reading.as_ref().unwrap());
 
         canvas.clear(Self::BACKGROUND_COLOR);
 
