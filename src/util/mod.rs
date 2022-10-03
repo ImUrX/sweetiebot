@@ -13,7 +13,7 @@ use skia_safe::{
     textlayout::{FontCollection, ParagraphBuilder, TypefaceFontProvider},
     Data, Typeface,
 };
-use tokio::time::timeout;
+use tokio::{task, time::timeout};
 use twilight_http::Client as HttpClient;
 use twilight_model::{
     application::{
@@ -92,20 +92,41 @@ pub fn measure_text_width<'a>(
     measure[0].width
 }
 
-pub fn censor_image(bytes: Bytes) -> Result<Bytes> {
-    let img = ImageReader::new(Cursor::new(bytes))
-        .with_guessed_format()?
-        .decode()?;
-    let ratio = img.width() / 18;
-    let resize = img
-        .resize(18, img.height() / ratio, FilterType::Nearest)
-        .resize(img.width(), img.height(), FilterType::Nearest);
-    let mut new_bytes: Vec<u8> = Vec::new();
-    resize.write_to(
-        &mut Cursor::new(&mut new_bytes),
-        image::ImageOutputFormat::Png,
-    )?;
-    Ok(new_bytes.into())
+pub async fn censor_image(bytes: Bytes) -> Result<Bytes> {
+    task::spawn_blocking(move || {
+        let img = ImageReader::new(Cursor::new(bytes))
+            .with_guessed_format()?
+            .decode()?;
+        let ratio = img.width() / 18;
+        let resize = img
+            .resize(18, img.height() / ratio, FilterType::Nearest)
+            .resize(img.width(), img.height(), FilterType::Nearest);
+        let mut new_bytes: Vec<u8> = Vec::new();
+        resize.write_to(
+            &mut Cursor::new(&mut new_bytes),
+            image::ImageOutputFormat::Png,
+        )?;
+        Ok(new_bytes.into())
+    })
+    .await?
+}
+
+pub async fn get_bytes(url: &str) -> Result<Bytes> {
+    Ok(reqwest::get(url).await?.bytes().await?)
+}
+
+pub fn seconds_to_timestamp(seconds: u32) -> String {
+    let mut vec = Vec::new();
+    let hours = seconds / 3600;
+    if hours > 0 {
+        vec.push(hours.to_string());
+    }
+    let minutes = (seconds % 3600) / 60;
+    if minutes > 0 {
+        vec.push(minutes.to_string());
+    }
+    vec.push((seconds % 60).to_string());
+    vec.join(":")
 }
 
 pub struct EmbedList {
@@ -295,103 +316,4 @@ impl EmbedList {
             ]),
         }
     }
-}
-
-pub async fn jisho_words(keyword: &str) -> Result<JishoResult> {
-    let client = reqwest::Client::new();
-    let mut res = client
-        .get("https://jisho.org/api/v1/search/words")
-        .query(&[("keyword", keyword)])
-        .send()
-        .await?
-        .json::<JishoResult>()
-        .await?;
-
-    let html = client
-        .get(format!("https://jisho.org/search/{}", encode(keyword)))
-        .send()
-        .await?
-        .text()
-        .await?;
-    let document = Html::parse_document(&html);
-    let definition_selector = Selector::parse("#primary > div > div").unwrap();
-    let furigana_selector = Selector::parse(".furigana span").unwrap();
-    let mut furiganas: Vec<Vec<String>> = Vec::new();
-    for definition in document.select(&definition_selector) {
-        furiganas.push(
-            definition
-                .select(&furigana_selector)
-                .map(|x| x.inner_html().trim().to_string())
-                .collect(),
-        );
-    }
-
-    for (data, furigana) in res.data.iter_mut().zip(furiganas) {
-        data.japanese[0].furigana = furigana;
-    }
-    Ok(res)
-}
-
-#[derive(Deserialize, Debug)]
-pub struct JishoResult {
-    pub meta: JishoMetadata,
-    pub data: Vec<JishoWord>,
-}
-
-#[derive(Deserialize, Debug)]
-pub struct JishoWord {
-    pub slug: String,
-    pub is_common: Option<bool>,
-    pub tags: Vec<String>,
-    pub jlpt: Vec<String>,
-    pub japanese: Vec<JishoJapanese>,
-    pub senses: Vec<JishoSense>,
-    #[serde(skip_deserializing)]
-    pub attribution: JishoWordAttribution,
-    //audio: JishoWordAudio
-}
-
-#[derive(Deserialize, Debug, Default)]
-pub struct JishoWordAttribution {
-    pub jmdict: bool,
-    pub jmnedict: bool,
-    pub dbpedia: Option<String>,
-}
-
-#[derive(Deserialize, Debug)]
-pub struct JishoWordAudio {
-    pub mp3: Option<String>,
-    pub ogg: Option<String>,
-}
-
-#[derive(Deserialize, Debug)]
-pub struct JishoMetadata {
-    pub status: u32,
-}
-
-#[derive(Deserialize, Debug)]
-pub struct JishoJapanese {
-    pub word: Option<String>,
-    pub reading: Option<String>,
-    #[serde(default)]
-    pub furigana: Vec<String>,
-}
-
-#[derive(Deserialize, Debug)]
-pub struct JishoSense {
-    pub english_definitions: Vec<String>,
-    pub parts_of_speech: Vec<String>,
-    pub links: Vec<JishoSenseLink>,
-    pub tags: Vec<String>,
-    pub restrictions: Vec<String>,
-    pub see_also: Vec<String>,
-    pub antonyms: Vec<String>,
-    pub source: Vec<String>,
-    pub info: Vec<String>,
-}
-
-#[derive(Deserialize, Debug)]
-pub struct JishoSenseLink {
-    pub text: String,
-    pub url: String,
 }
