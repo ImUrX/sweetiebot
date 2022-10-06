@@ -2,13 +2,17 @@ use anyhow::Result;
 use serde::Deserialize;
 use twilight_interactions::command::{CommandModel, CreateCommand};
 use twilight_model::{
-    application::interaction::Interaction,
+    application::interaction::{Interaction, InteractionData},
     channel::{embed::EmbedField, Attachment},
+    http::attachment::Attachment as HttpAttachment,
 };
-use twilight_util::builder::embed::{EmbedBuilder, ImageSource};
+use twilight_util::builder::{
+    embed::{EmbedBuilder, ImageSource},
+    InteractionResponseDataBuilder,
+};
 
 use crate::{
-    util::{censor_image, get_bytes, seconds_to_timestamp},
+    util::{censor_image, get_bytes, seconds_to_timestamp, EmbedList, DEFERRED_RESPONSE},
     ClusterData,
 };
 
@@ -46,10 +50,45 @@ pub struct SauceYandex {
 
 impl SauceTraceMoe {
     pub async fn run(self, info: ClusterData, interaction: &Interaction) -> Result<()> {
+        info.http
+            .interaction(interaction.application_id)
+            .create_response(interaction.id, &interaction.token, &DEFERRED_RESPONSE)
+            .exec()
+            .await?;
+
+        let res = fetch_tracemoe(&self.image).await?;
+        let mut embed_list = EmbedList::new(
+            info.http.clone(),
+            interaction.application_id,
+            info.standby.clone(),
+        );
+
+        let nsfw = if let Some(channel_id) = interaction.channel_id {
+            info.http
+                .channel(channel_id)
+                .exec()
+                .await?
+                .model()
+                .await?
+                .nsfw
+                .unwrap_or(false)
+        } else {
+            false
+        };
+        for data in res.result.iter().take(5) {
+            let (embed, attachment) = Self::make_embed(data, nsfw).await?;
+            embed_list.add(embed.build(), Some(attachment));
+        }
+        embed_list
+            .reply(interaction, InteractionResponseDataBuilder::new())
+            .await?;
         Ok(())
     }
 
-    pub async fn create_embed(data: &TraceResult, nsfw_channel: bool) -> Result<EmbedBuilder> {
+    pub async fn make_embed(
+        data: &TraceResult,
+        nsfw_channel: bool,
+    ) -> Result<(EmbedBuilder, HttpAttachment)> {
         let mut embed = EmbedBuilder::new()
             .title(
                 data.anilist
@@ -60,7 +99,6 @@ impl SauceTraceMoe {
             )
             .url(format!("https://anilist.co/anime/{}/", data.anilist.id))
             .color(0x0)
-            // FIXME: Censor image if NSFW
             .image(ImageSource::attachment("trace.png")?)
             .field(EmbedField {
                 name: "Similarity".to_string(),
@@ -70,22 +108,34 @@ impl SauceTraceMoe {
             .field(EmbedField {
                 name: "Timestamp".to_string(),
                 value: data.episode.as_ref().map_or_else(
-                    || seconds_to_timestamp(data.from),
+                    || seconds_to_timestamp(data.from as u32),
                     |ep| {
                         format!(
                             "Episode {} at {}",
                             ep.to_string(),
-                            seconds_to_timestamp(data.from)
+                            seconds_to_timestamp(data.from as u32)
                         )
                     },
                 ),
                 inline: true,
             });
-        Ok(embed)
+        let image = get_bytes(&data.image).await?;
+        let attachment = if data.anilist.is_adult && !nsfw_channel {
+            embed = embed.description("**WARNING**: Image is NSFW so it's been censored!");
+            HttpAttachment::from_bytes(
+                "trace.png".to_string(),
+                censor_image(image).await?.into(),
+                1,
+            )
+        } else {
+            HttpAttachment::from_bytes("trace.png".to_string(), image.into(), 1)
+        };
+
+        Ok((embed, attachment))
     }
 }
 
-pub async fn fetch_tracemoe(attachment: Attachment) -> Result<TraceResponse> {
+pub async fn fetch_tracemoe(attachment: &Attachment) -> Result<TraceResponse> {
     let client = reqwest::Client::new();
     let res = client
         .post("https://api.trace.moe/search?anilistInfo")
@@ -121,8 +171,8 @@ pub struct TraceResult {
     pub anilist: AnilistResult,
     pub filename: String,
     pub episode: Option<EpisodeField>,
-    pub from: u32,
-    pub to: u32,
+    pub from: f32,
+    pub to: f32,
     pub similarity: f64,
     pub video: String,
     pub image: String,

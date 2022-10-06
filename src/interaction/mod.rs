@@ -8,7 +8,10 @@ use twilight_model::{
 
 use crate::ClusterData;
 
-use self::command::weeb::japanese::{JishoCommand, JishoCommandAutocomplete};
+use self::command::weeb::{
+    japanese::{JishoCommand, JishoCommandAutocomplete},
+    sauce::SauceCommand,
+};
 
 pub mod command;
 pub async fn handle_interaction(
@@ -25,6 +28,15 @@ pub async fn handle_interaction(
                             JishoCommand::from_interaction((**cmd).clone().into())?
                                 .run(info, &interaction.0)
                                 .await?
+                        }
+                        "sauce" => {
+                            let sauce = SauceCommand::from_interaction((**cmd).clone().into())?;
+                            match sauce {
+                                SauceCommand::TraceMoe(trace) => {
+                                    trace.run(info, &interaction.0).await?
+                                }
+                                _ => bail!("Not handling sauce subcommand"),
+                            }
                         }
                         _ => bail!("Unknown command interaction {}", cmd.name),
                     };

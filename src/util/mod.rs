@@ -161,6 +161,142 @@ impl EmbedList {
         self.attachments.push(attachment);
     }
 
+    pub async fn edit_reply(
+        self,
+        interaction: &Interaction,
+        builder: InteractionResponseDataBuilder,
+    ) -> Result<()> {
+        ensure!(!self.embeds.is_empty(), "There is no embeds to send!");
+
+        // Just send the embed without any component
+        if self.embeds.len() == 1 {
+            let client = self.http.interaction(self.application_id);
+            // FIXME: Cloning
+            let builder = builder
+                .embeds(self.embeds)
+                .attachments(self.attachments.iter().filter_map(|x| x.to_owned()));
+            let response = InteractionResponse {
+                kind: InteractionResponseType::ChannelMessageWithSource,
+                data: Some(builder.build()),
+            };
+            let create = client.create_response(interaction.id, &interaction.token, &response);
+            create.exec().await?;
+            return Ok(());
+        }
+
+        // Send the first message with the embed and components
+        let first = builder
+            .clone()
+            .embeds([self.embeds[0].clone()])
+            .attachments(self.attachments[0].clone())
+            .components([Component::ActionRow(Self::generate_row(true, false))]);
+        let response = InteractionResponse {
+            kind: InteractionResponseType::ChannelMessageWithSource,
+            data: Some(first.build()),
+        };
+        self.http
+            .interaction(self.application_id)
+            .update_response(&interaction.token)
+            .embeds(Some(&[self.embeds[0].clone()]))?
+            .attachments(&[self.attachments[0].clone()])?
+            .components(Some(&[Component::ActionRow(Self::generate_row(true, false))])?
+            .exec()
+            .await?;
+
+        let message_id = self
+            .http
+            .interaction(self.application_id)
+            .response(&interaction.token)
+            .exec()
+            .await?
+            .model()
+            .await?
+            .id;
+        // Make stream based on the back and next buttons
+        let components =
+            self.standby
+                .wait_for_component_stream(message_id, |event: &Interaction| {
+                    if let Some(InteractionData::MessageComponent(data)) = &event.data {
+                        data.custom_id == "back" || data.custom_id == "next"
+                    } else {
+                        false
+                    }
+                });
+
+        // Try for each the stream because we need to time out of it after the specified time
+        let process = components
+            .map(|x| -> Result<Interaction> { Ok(x) })
+            .try_for_each(|component| {
+                let list = Arc::new(&self);
+                let mut index = list.index.clone();
+                let token = interaction.token.clone();
+                async move {
+                    if let Some(InteractionData::MessageComponent(data)) = component.data {
+                        list.http
+                            .interaction(list.application_id)
+                            .create_response(
+                                component.id,
+                                &component.token,
+                                &DEFERRED_COMPONENT_RESPONSE,
+                            )
+                            .exec()
+                            .await?;
+                        let index = match &*data.custom_id {
+                            // we are not parallelizing the stream, so the arc should only be touched once per time so no deadlocks
+                            "next" => {
+                                unsafe {
+                                    *Arc::get_mut_unchecked(&mut index) += 1;
+                                }
+                                *index
+                            }
+                            "back" => {
+                                unsafe {
+                                    *Arc::get_mut_unchecked(&mut index) -= 1;
+                                }
+                                *index
+                            }
+                            _ => panic!("unhandled custom id!"),
+                        };
+                        let action_row = [Component::ActionRow(Self::generate_row(
+                            index == 0,
+                            index == list.embeds.len(),
+                        ))];
+                        let embeds = &list.embeds[index..(index + 1)];
+                        //FIXME: Copying attachments just to pass them...
+                        let attachments: Vec<Attachment> = list.attachments[index..(index + 1)]
+                            .iter()
+                            .filter_map(|x| x.to_owned())
+                            .collect();
+                        let _update = list
+                            .http
+                            .interaction(list.application_id)
+                            .update_response(&token)
+                            .embeds(Some(embeds))?
+                            .attachments(&attachments)?
+                            .components(Some(&action_row))?
+                            .exec()
+                            .await?;
+                    }
+                    Ok(())
+                }
+            });
+
+        // Clear all components when timeout runs out
+        match timeout(Duration::from_secs(self.duration), process).await {
+            Err(_) => {
+                let _update = self
+                    .http
+                    .interaction(self.application_id)
+                    .update_response(&interaction.token)
+                    .components(None)?
+                    .exec()
+                    .await?;
+                Ok(())
+            }
+            Ok(result) => result,
+        }
+    }
+
     pub async fn reply(
         self,
         interaction: &Interaction,
