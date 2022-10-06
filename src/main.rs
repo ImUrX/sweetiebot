@@ -1,7 +1,7 @@
-#![feature(get_mut_unchecked, is_some_with)]
+#![feature(get_mut_unchecked, is_some_with, try_blocks)]
 mod interaction;
 pub mod util;
-use anyhow::Result;
+use anyhow::{Context, Result};
 use dotenv::dotenv;
 use futures::stream::StreamExt;
 use interaction::handle_interaction;
@@ -12,9 +12,12 @@ use twilight_gateway::{
     Event, Intents,
 };
 use twilight_http::Client as HttpClient;
-use twilight_model::id::{
-    marker::{ApplicationMarker, UserMarker},
-    Id,
+use twilight_model::{
+    application::interaction::Interaction,
+    id::{
+        marker::{ApplicationMarker, ChannelMarker, UserMarker},
+        Id,
+    },
 };
 use twilight_standby::Standby;
 
@@ -122,4 +125,22 @@ pub struct ClusterData {
     pub application_id: Id<ApplicationMarker>,
     pub bot_id: Id<UserMarker>,
     pub standby: Arc<Standby>,
+}
+
+impl ClusterData {
+    pub async fn is_nsfw_interaction(&self, interaction: &Interaction) -> bool {
+        let nsfw: Result<bool> = try {
+            !interaction.is_dm()
+                && self
+                    .http
+                    .channel(interaction.channel_id.context("no channel")?)
+                    .exec()
+                    .await?
+                    .model()
+                    .await?
+                    .nsfw
+                    .unwrap_or(false)
+        };
+        nsfw.unwrap_or(false)
+    }
 }

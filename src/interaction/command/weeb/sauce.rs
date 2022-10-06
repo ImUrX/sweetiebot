@@ -63,24 +63,13 @@ impl SauceTraceMoe {
             info.standby.clone(),
         );
 
-        let nsfw = if let Some(channel_id) = interaction.channel_id {
-            info.http
-                .channel(channel_id)
-                .exec()
-                .await?
-                .model()
-                .await?
-                .nsfw
-                .unwrap_or(false)
-        } else {
-            false
-        };
+        let nsfw = info.is_nsfw_interaction(interaction).await;
         for data in res.result.iter().take(5) {
             let (embed, attachment) = Self::make_embed(data, nsfw).await?;
             embed_list.add(embed.build(), Some(attachment));
         }
         embed_list
-            .reply(interaction, InteractionResponseDataBuilder::new())
+            .defer_reply(interaction, InteractionResponseDataBuilder::new())
             .await?;
         Ok(())
     }
@@ -144,8 +133,7 @@ pub async fn fetch_tracemoe(attachment: &Attachment) -> Result<TraceResponse> {
             "Content-Type",
             attachment
                 .content_type
-                .as_ref()
-                .map(|s| &**s)
+                .as_deref()
                 .unwrap_or("application/x-www-form-urlencoded"),
         )
         .send()

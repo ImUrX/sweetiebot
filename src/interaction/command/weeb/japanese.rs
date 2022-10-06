@@ -125,7 +125,9 @@ impl JishoCommand<'_> {
                 index + 1,
                 sense.english_definitions.join("; ")
             );
+            content += " ";
             content += &sense.tags.join(", ");
+            // FIXME: Missing Spaces
             content += &sense
                 .restrictions
                 .iter()

@@ -25,7 +25,7 @@ use twilight_model::{
         attachment::Attachment,
         interaction::{InteractionResponse, InteractionResponseType},
     },
-    id::marker::ApplicationMarker,
+    id::marker::{ApplicationMarker, ChannelMarker},
     id::Id,
 };
 use twilight_standby::Standby;
@@ -161,45 +161,38 @@ impl EmbedList {
         self.attachments.push(attachment);
     }
 
-    pub async fn edit_reply(
+    pub async fn defer_reply(
         self,
         interaction: &Interaction,
         builder: InteractionResponseDataBuilder,
     ) -> Result<()> {
         ensure!(!self.embeds.is_empty(), "There is no embeds to send!");
 
+        //FIXME: Copying attachments just to pass them...
+        let attachments: Vec<Attachment> = self
+            .attachments
+            .iter()
+            .take(1)
+            .filter_map(|x| x.to_owned())
+            .collect();
         // Just send the embed without any component
         if self.embeds.len() == 1 {
-            let client = self.http.interaction(self.application_id);
-            // FIXME: Cloning
-            let builder = builder
-                .embeds(self.embeds)
-                .attachments(self.attachments.iter().filter_map(|x| x.to_owned()));
-            let response = InteractionResponse {
-                kind: InteractionResponseType::ChannelMessageWithSource,
-                data: Some(builder.build()),
-            };
-            let create = client.create_response(interaction.id, &interaction.token, &response);
-            create.exec().await?;
+            self.http
+                .interaction(self.application_id)
+                .create_followup(&interaction.token)
+                .embeds(&self.embeds)?
+                .attachments(&attachments)?
+                .exec()
+                .await?;
             return Ok(());
         }
 
-        // Send the first message with the embed and components
-        let first = builder
-            .clone()
-            .embeds([self.embeds[0].clone()])
-            .attachments(self.attachments[0].clone())
-            .components([Component::ActionRow(Self::generate_row(true, false))]);
-        let response = InteractionResponse {
-            kind: InteractionResponseType::ChannelMessageWithSource,
-            data: Some(first.build()),
-        };
         self.http
             .interaction(self.application_id)
-            .update_response(&interaction.token)
-            .embeds(Some(&[self.embeds[0].clone()]))?
-            .attachments(&[self.attachments[0].clone()])?
-            .components(Some(&[Component::ActionRow(Self::generate_row(true, false))])?
+            .create_followup(&interaction.token)
+            .embeds(&[self.embeds[0].clone()])?
+            .attachments(&attachments)?
+            .components(&[Component::ActionRow(Self::generate_row(true, false))])?
             .exec()
             .await?;
 
@@ -259,7 +252,7 @@ impl EmbedList {
                         };
                         let action_row = [Component::ActionRow(Self::generate_row(
                             index == 0,
-                            index == list.embeds.len(),
+                            index == list.embeds.len() - 1,
                         ))];
                         let embeds = &list.embeds[index..(index + 1)];
                         //FIXME: Copying attachments just to pass them...
@@ -392,7 +385,7 @@ impl EmbedList {
                         };
                         let action_row = [Component::ActionRow(Self::generate_row(
                             index == 0,
-                            index == list.embeds.len(),
+                            index == list.embeds.len() - 1,
                         ))];
                         let embeds = &list.embeds[index..(index + 1)];
                         //FIXME: Copying attachments just to pass them...
