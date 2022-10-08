@@ -88,7 +88,11 @@ impl JishoCommandAutocomplete {
 
 impl JishoCommand<'_> {
     pub async fn run(self, info: ClusterData, interaction: &Interaction) -> Result<()> {
-        info.http.interaction(interaction.application_id).create_response(interaction.id, &interaction.token, &DEFERRED_RESPONSE).exec().await?;
+        info.http
+            .interaction(interaction.application_id)
+            .create_response(interaction.id, &interaction.token, &DEFERRED_RESPONSE)
+            .exec()
+            .await?;
 
         let res = jisho_words(&self.word).await?;
         let mut embed_list = EmbedList::new(
@@ -181,7 +185,7 @@ impl JishoCommand<'_> {
                         .or(x.reading.to_owned())
                 })
                 .join("、");
-            
+
             fields.push(EmbedFieldBuilder::new("Other forms", forms).build());
         }
 
