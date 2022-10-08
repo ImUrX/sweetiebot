@@ -26,7 +26,7 @@ use urlencoding::encode;
 use wana_kana::{is_hiragana::is_hiragana, to_hiragana::to_hiragana};
 
 use crate::{
-    util::{measure_text_width, EmbedList},
+    util::{measure_text_width, EmbedList, DEFERRED_RESPONSE},
     ClusterData,
 };
 
@@ -88,7 +88,7 @@ impl JishoCommandAutocomplete {
 
 impl JishoCommand<'_> {
     pub async fn run(self, info: ClusterData, interaction: &Interaction) -> Result<()> {
-        //info.http.interaction(interaction.application_id).create_response(interaction.id, &interaction.token, &DEFERRED_RESPONSE).exec().await?;
+        info.http.interaction(interaction.application_id).create_response(interaction.id, &interaction.token, &DEFERRED_RESPONSE).exec().await?;
 
         let res = jisho_words(&self.word).await?;
         let mut embed_list = EmbedList::new(
@@ -101,7 +101,7 @@ impl JishoCommand<'_> {
             embed_list.add(embed.build(), Some(attachment));
         }
         embed_list
-            .reply(interaction, InteractionResponseDataBuilder::new())
+            .defer_reply(interaction, InteractionResponseDataBuilder::new())
             .await?;
         Ok(())
     }
@@ -149,7 +149,7 @@ impl JishoCommand<'_> {
                 let len = fields.len();
                 fields[len - 1].value += &("\n".to_string() + &content);
                 ensure!(
-                    fields[len - 1].value.encode_utf16().count() > FIELD_VALUE_LENGTH,
+                    fields[len - 1].value.encode_utf16().count() < FIELD_VALUE_LENGTH,
                     "Modifying the previous field made it too big!"
                 );
                 continue;
@@ -178,9 +178,10 @@ impl JishoCommand<'_> {
                         .as_ref()
                         .and(x.reading.as_ref())
                         .map(|reading| format!("{} 【{}】", x.word.as_ref().unwrap(), reading))
+                        .or(x.reading.to_owned())
                 })
                 .join("、");
-
+            
             fields.push(EmbedFieldBuilder::new("Other forms", forms).build());
         }
 

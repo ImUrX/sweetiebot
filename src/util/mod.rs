@@ -119,13 +119,13 @@ pub fn seconds_to_timestamp(seconds: u32) -> String {
     let mut vec = Vec::new();
     let hours = seconds / 3600;
     if hours > 0 {
-        vec.push(hours.to_string());
+        vec.push(format!("{:02}", hours));
     }
     let minutes = (seconds % 3600) / 60;
     if minutes > 0 {
-        vec.push(minutes.to_string());
+        vec.push(format!("{:02}", minutes));
     }
-    vec.push((seconds % 60).to_string());
+    vec.push(format!("{:02}", seconds % 60));
     vec.join(":")
 }
 
