@@ -1,5 +1,4 @@
-
-use std::{env};
+use std::env;
 
 use serde::de::{Deserializer, Error};
 use serde::Deserialize;
@@ -26,7 +25,7 @@ pub async fn fetch(attachment: &Attachment) -> anyhow::Result<Data> {
 }
 
 const NSFW_WARN: &str = "\n**WARNING:** Image is NSFW so it's been censored!";
-pub async fn create_embed(
+pub async fn build_embed(
     data: &Res,
     nsfw_channel: bool,
 ) -> anyhow::Result<(EmbedBuilder, HttpAttachment)> {
@@ -57,7 +56,6 @@ pub async fn create_embed(
             embed = embed.url(url)
         }
     }
-
 
     Ok((embed, attachment))
 }
@@ -101,7 +99,9 @@ impl<'de> Deserialize<'de> for Res {
                 .ok_or_else(|| D::Error::missing_field("header"))?,
         )
         .map_err(D::Error::custom)?;
-        let data = value.get("data").ok_or_else(|| D::Error::missing_field("data"))?;
+        let data = value
+            .get("data")
+            .ok_or_else(|| D::Error::missing_field("data"))?;
         let data = match header.index_id {
             5 | 6 => ResData::Pixiv(SaucePixivData::deserialize(data).map_err(D::Error::custom)?),
             8 => ResData::NicoNico(SauceNicoNicoData::deserialize(data).map_err(D::Error::custom)?),

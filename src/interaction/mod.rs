@@ -32,6 +32,9 @@ pub async fn handle_interaction(
                         "sauce" => {
                             let sauce = SauceCommand::from_interaction((**cmd).clone().into())?;
                             match sauce {
+                                SauceCommand::SauceNAO(saucenao) => {
+                                    saucenao.run(info, &interaction.0).await?
+                                }
                                 SauceCommand::TraceMoe(trace) => {
                                     trace.run(info, &interaction.0).await?
                                 }

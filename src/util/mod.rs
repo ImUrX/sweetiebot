@@ -7,7 +7,6 @@ use image::{imageops::FilterType, io::Reader as ImageReader};
 use include_dir::{include_dir, Dir};
 use lazy_static::lazy_static;
 
-
 use skia_safe::{
     scalar,
     textlayout::{FontCollection, ParagraphBuilder, TypefaceFontProvider},
@@ -25,14 +24,14 @@ use twilight_model::{
         attachment::Attachment,
         interaction::{InteractionResponse, InteractionResponseType},
     },
-    id::marker::{ApplicationMarker},
+    id::marker::ApplicationMarker,
     id::Id,
 };
 use twilight_standby::Standby;
 use twilight_util::builder::InteractionResponseDataBuilder;
 
-
 pub mod saucenao;
+pub mod tracemoe;
 
 static VALID_FONTS: &[&str] = &["ttf", "ttc", "otf"];
 pub static DEFERRED_RESPONSE: InteractionResponse = InteractionResponse {
