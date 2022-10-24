@@ -87,7 +87,7 @@ impl SauceSauceNAO {
         );
 
         let nsfw = info.is_nsfw_interaction(interaction).await;
-        for data in res.res.iter().take(5) {
+        for data in res.results.iter().take(10) {
             let (embed, attachment) = build_saucenao_embed(data, nsfw).await?;
             embed_list.add(embed.build(), Some(attachment));
         }

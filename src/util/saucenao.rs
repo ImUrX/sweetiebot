@@ -68,7 +68,7 @@ pub struct DataHeader {
 #[derive(Debug, Deserialize)]
 pub struct Data {
     pub header: DataHeader,
-    pub res: Vec<Res>,
+    pub results: Vec<Res>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -112,6 +112,7 @@ impl<'de> Deserialize<'de> for Res {
                 ResData::EHentai(SauceEHentaiData::deserialize(data).map_err(D::Error::custom)?)
             }
             21 | 22 => ResData::Anime(SauceAnimeData::deserialize(data).map_err(D::Error::custom)?),
+            25 => ResData::Gelbooru(SauceGelbooruData::deserialize(data).map_err(D::Error::custom)?),
             27 => ResData::Sankaku(SauceSankakuData::deserialize(data).map_err(D::Error::custom)?),
             29 => ResData::E621(SauceE621Data::deserialize(data).map_err(D::Error::custom)?),
             31 => ResData::Bcy(SauceBcyData::deserialize(data).map_err(D::Error::custom)?),
@@ -124,7 +125,10 @@ impl<'de> Deserialize<'de> for Res {
             }
             37 | 371 => {
                 ResData::Mangadex(SauceMangadexData::deserialize(data).map_err(D::Error::custom)?)
-            }
+            },
+            39 => {
+                ResData::Artstation(SauceArtstationData::deserialize(data).map_err(D::Error::custom)?)
+            },
             40 => ResData::FurAffinity(
                 SauceFurAffinityData::deserialize(data).map_err(D::Error::custom)?,
             ),
@@ -148,6 +152,7 @@ pub enum ResData {
     FAKKU(SauceFAKKUData),
     EHentai(SauceEHentaiData),
     Anime(SauceAnimeData),
+    Gelbooru(SauceGelbooruData),
     Sankaku(SauceSankakuData),
     E621(SauceE621Data),
     Bcy(SauceBcyData),
@@ -155,6 +160,7 @@ pub enum ResData {
     Pawoo(SaucePawooData),
     Madokami(SauceMadokamiData),
     Mangadex(SauceMangadexData),
+    Artstation(SauceArtstationData),
     FurAffinity(SauceFurAffinityData),
     Twitter(SauceTwitterData),
     FurryNetwork(SauceFurryNetworkData),
@@ -171,6 +177,7 @@ impl ResData {
             Self::FAKKU(data) => &data.ext_urls,
             Self::EHentai(data) => &data.ext_urls,
             Self::Anime(data) => &data.ext_urls,
+            Self::Gelbooru(data) => &data.ext_urls,
             Self::Sankaku(data) => &data.ext_urls,
             Self::E621(data) => &data.ext_urls,
             Self::Bcy(data) => &data.ext_urls,
@@ -178,6 +185,7 @@ impl ResData {
             Self::Pawoo(data) => &data.ext_urls,
             Self::Madokami(data) => &data.ext_urls,
             Self::Mangadex(data) => &data.ext_urls,
+            Self::Artstation(data) => &data.ext_urls,
             Self::FurAffinity(data) => &data.ext_urls,
             Self::Twitter(data) => &data.ext_urls,
             Self::FurryNetwork(data) => &data.ext_urls,
@@ -260,6 +268,21 @@ pub struct SauceAnimeData {
 }
 
 #[derive(Debug, Deserialize)]
+pub struct SauceGelbooruData {
+    pub ext_urls: Vec<String>,
+    /// Sometimes a URL String
+    pub source: String,
+    pub characters: String,
+    pub material: String,
+    pub creator: String,
+    #[serde(rename = "anime-pictures_id")]
+    pub anime_pictures_id: Option<u32>,
+    pub gelbooru_id: u32,
+    pub yandere_id: Option<u32>,
+    pub danbooru_id: Option<u32>,
+}
+
+#[derive(Debug, Deserialize)]
 pub struct SauceSankakuData {
     pub ext_urls: Vec<String>,
     pub sankaku_id: u32,
@@ -335,6 +358,16 @@ pub struct SauceMangadexData {
     pub part: String,
     pub artist: String,
     pub author: String,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct SauceArtstationData {
+    pub ext_urls: Vec<String>,
+    /// ID of the project
+    pub as_project: String,
+    pub author_name: String,
+    pub author_url: String,
+    pub title: String,
 }
 
 #[derive(Debug, Deserialize)]
