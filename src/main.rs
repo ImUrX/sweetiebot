@@ -15,7 +15,7 @@ use twilight_http::Client as HttpClient;
 use twilight_model::{
     application::interaction::Interaction,
     id::{
-        marker::{ApplicationMarker, ChannelMarker, UserMarker},
+        marker::{ApplicationMarker, UserMarker},
         Id,
     },
 };

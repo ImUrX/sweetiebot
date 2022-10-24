@@ -2,7 +2,7 @@ use anyhow::Result;
 use serde::Deserialize;
 use twilight_interactions::command::{CommandModel, CreateCommand};
 use twilight_model::{
-    application::interaction::{Interaction, InteractionData},
+    application::interaction::{Interaction},
     channel::{embed::EmbedField, Attachment},
     http::attachment::Attachment as HttpAttachment,
 };

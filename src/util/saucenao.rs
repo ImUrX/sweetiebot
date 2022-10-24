@@ -1,7 +1,7 @@
-use std::marker::PhantomData;
-use std::{env, fmt};
 
-use serde::de::{Deserializer, Error, MapAccess, Visitor};
+use std::{env};
+
+use serde::de::{Deserializer, Error};
 use serde::Deserialize;
 use serde_json::Value;
 use twilight_model::channel::embed::EmbedFooter;
@@ -41,7 +41,7 @@ pub async fn create_embed(
         .description(format!(
             "Similarity {}%{}",
             data.header.similarity,
-            nsfw.then_some(NSFW_WARN).unwrap_or("")
+            if nsfw { NSFW_WARN } else { "" }
         ))
         .image(ImageSource::attachment("saucenao.png")?)
         .footer(EmbedFooter {
@@ -98,10 +98,10 @@ impl<'de> Deserialize<'de> for Res {
         let header = ResHeader::deserialize(
             value
                 .get("header")
-                .ok_or(D::Error::missing_field("header"))?,
+                .ok_or_else(|| D::Error::missing_field("header"))?,
         )
         .map_err(D::Error::custom)?;
-        let data = value.get("data").ok_or(D::Error::missing_field("data"))?;
+        let data = value.get("data").ok_or_else(|| D::Error::missing_field("data"))?;
         let data = match header.index_id {
             5 | 6 => ResData::Pixiv(SaucePixivData::deserialize(data).map_err(D::Error::custom)?),
             8 => ResData::NicoNico(SauceNicoNicoData::deserialize(data).map_err(D::Error::custom)?),
@@ -162,7 +162,7 @@ pub enum ResData {
 }
 
 impl ResData {
-    pub fn get_ext_urls<'a>(&'a self) -> &'a [String] {
+    pub fn get_ext_urls(&'_ self) -> &'_ [String] {
         match self {
             Self::Pixiv(data) => &data.ext_urls,
             Self::NicoNico(data) => &data.ext_urls,

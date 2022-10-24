@@ -182,7 +182,7 @@ impl JishoCommand<'_> {
                         .as_ref()
                         .and(x.reading.as_ref())
                         .map(|reading| format!("{} 【{}】", x.word.as_ref().unwrap(), reading))
-                        .or(x.reading.to_owned())
+                        .or_else(|| x.reading.to_owned())
                 })
                 .join("、");
 
@@ -272,7 +272,7 @@ impl JishoCommand<'_> {
         }
 
         let text_length = text.chars().count();
-        let reducer = if text_length == 1 { 0 } else { 1 };
+        let reducer = usize::from(text_length != 1);
         let first_char_pos_x = {
             let mut half_width = size * ((text_length / 2) - reducer) as f32;
             // if its even

@@ -6,8 +6,8 @@ use futures::{stream::TryStreamExt, StreamExt};
 use image::{imageops::FilterType, io::Reader as ImageReader};
 use include_dir::{include_dir, Dir};
 use lazy_static::lazy_static;
-use scraper::{Html, Selector};
-use serde::Deserialize;
+
+
 use skia_safe::{
     scalar,
     textlayout::{FontCollection, ParagraphBuilder, TypefaceFontProvider},
@@ -25,12 +25,12 @@ use twilight_model::{
         attachment::Attachment,
         interaction::{InteractionResponse, InteractionResponseType},
     },
-    id::marker::{ApplicationMarker, ChannelMarker},
+    id::marker::{ApplicationMarker},
     id::Id,
 };
 use twilight_standby::Standby;
 use twilight_util::builder::InteractionResponseDataBuilder;
-use urlencoding::encode;
+
 
 pub mod saucenao;
 
@@ -166,7 +166,7 @@ impl EmbedList {
     pub async fn defer_reply(
         self,
         interaction: &Interaction,
-        builder: InteractionResponseDataBuilder,
+        _builder: InteractionResponseDataBuilder,
     ) -> Result<()> {
         ensure!(!self.embeds.is_empty(), "There is no embeds to send!");
 
