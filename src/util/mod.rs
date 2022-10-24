@@ -32,6 +32,8 @@ use twilight_standby::Standby;
 use twilight_util::builder::InteractionResponseDataBuilder;
 use urlencoding::encode;
 
+pub mod saucenao;
+
 static VALID_FONTS: &[&str] = &["ttf", "ttc", "otf"];
 pub static DEFERRED_RESPONSE: InteractionResponse = InteractionResponse {
     kind: InteractionResponseType::DeferredChannelMessageWithSource,
