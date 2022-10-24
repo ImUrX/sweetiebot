@@ -1,4 +1,4 @@
-#![feature(get_mut_unchecked, is_some_with, try_blocks)]
+#![feature(get_mut_unchecked, try_blocks)]
 mod interaction;
 pub mod util;
 use anyhow::{Context, Result};

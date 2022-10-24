@@ -4,7 +4,11 @@ use std::{env, fmt};
 use serde::de::{Deserializer, Error, MapAccess, Visitor};
 use serde::Deserialize;
 use serde_json::Value;
-use twilight_model::channel::Attachment;
+use twilight_model::channel::embed::EmbedFooter;
+use twilight_model::{channel::Attachment, http::attachment::Attachment as HttpAttachment};
+use twilight_util::builder::embed::{EmbedBuilder, ImageSource};
+
+use super::{censor_image, get_bytes};
 
 pub async fn fetch(attachment: &Attachment) -> anyhow::Result<Data> {
     let client = reqwest::Client::new();
@@ -21,31 +25,68 @@ pub async fn fetch(attachment: &Attachment) -> anyhow::Result<Data> {
     Ok(res)
 }
 
+const NSFW_WARN: &str = "\n**WARNING:** Image is NSFW so it's been censored!";
+pub async fn create_embed(
+    data: &Res,
+    nsfw_channel: bool,
+) -> anyhow::Result<(EmbedBuilder, HttpAttachment)> {
+    let nsfw = data.header.hidden != 0 && !nsfw_channel;
+    let image = if nsfw {
+        censor_image(get_bytes(&data.header.thumbnail).await?).await?
+    } else {
+        get_bytes(&data.header.thumbnail).await?
+    };
+    let attachment = HttpAttachment::from_bytes("saucenao.png".to_string(), image.into(), 1);
+    let mut embed = EmbedBuilder::new()
+        .description(format!(
+            "Similarity {}%{}",
+            data.header.similarity,
+            nsfw.then_some(NSFW_WARN).unwrap_or("")
+        ))
+        .image(ImageSource::attachment("saucenao.png")?)
+        .footer(EmbedFooter {
+            icon_url: None,
+            proxy_icon_url: None,
+            text: data.header.index_name.clone(),
+        })
+        .color(0x9b59b6);
+
+    {
+        let ext_urls = data.data.get_ext_urls();
+        if let Some(url) = ext_urls.get(0) {
+            embed = embed.url(url)
+        }
+    }
+
+
+    Ok((embed, attachment))
+}
+
 #[derive(Debug, Deserialize)]
 pub struct DataHeader {
-    status: u32,
+    pub status: u32,
 }
 
 #[derive(Debug, Deserialize)]
 pub struct Data {
-    header: DataHeader,
-    Ress: Vec<Res>,
+    pub header: DataHeader,
+    pub res: Vec<Res>,
 }
 
 #[derive(Debug, Deserialize)]
 pub struct ResHeader {
-    similarity: String,
-    thumbnail: String,
-    index_id: u32,
-    index_name: String,
-    dupes: u32,
-    hidden: u32,
+    pub similarity: String,
+    pub thumbnail: String,
+    pub index_id: u32,
+    pub index_name: String,
+    pub dupes: u32,
+    pub hidden: u32,
 }
 
 #[derive(Debug)]
 pub struct Res {
-    header: ResHeader,
-    data: ResData,
+    pub header: ResHeader,
+    pub data: ResData,
 }
 
 impl<'de> Deserialize<'de> for Res {
@@ -120,184 +161,218 @@ pub enum ResData {
     Kemono(SauceKemonoData),
 }
 
+impl ResData {
+    pub fn get_ext_urls<'a>(&'a self) -> &'a [String] {
+        match self {
+            Self::Pixiv(data) => &data.ext_urls,
+            Self::NicoNico(data) => &data.ext_urls,
+            Self::Danbooru(data) => &data.ext_urls,
+            Self::Yandere(data) => &data.ext_urls,
+            Self::FAKKU(data) => &data.ext_urls,
+            Self::EHentai(data) => &data.ext_urls,
+            Self::Anime(data) => &data.ext_urls,
+            Self::Sankaku(data) => &data.ext_urls,
+            Self::E621(data) => &data.ext_urls,
+            Self::Bcy(data) => &data.ext_urls,
+            Self::DeviantArt(data) => &data.ext_urls,
+            Self::Pawoo(data) => &data.ext_urls,
+            Self::Madokami(data) => &data.ext_urls,
+            Self::Mangadex(data) => &data.ext_urls,
+            Self::FurAffinity(data) => &data.ext_urls,
+            Self::Twitter(data) => &data.ext_urls,
+            Self::FurryNetwork(data) => &data.ext_urls,
+            Self::Kemono(data) => &data.ext_urls,
+        }
+    }
+}
+
 #[derive(Debug, Deserialize)]
 pub struct SaucePixivData {
-    ext_urls: Vec<String>,
-    member_name: String,
-    member_id: u32,
-    title: String,
+    pub ext_urls: Vec<String>,
+    pub member_name: String,
+    pub member_id: u32,
+    pub title: String,
 }
 
 #[derive(Debug, Deserialize)]
 pub struct SauceNicoNicoData {
-    ext_urls: Vec<String>,
-    seiga_id: u32,
-    member_name: String,
-    member_id: u32,
-    title: String,
+    pub ext_urls: Vec<String>,
+    pub seiga_id: u32,
+    pub member_name: String,
+    pub member_id: u32,
+    pub title: String,
 }
 
 #[derive(Debug, Deserialize)]
 pub struct SauceDanbooruData {
-    ext_urls: Vec<String>,
+    pub ext_urls: Vec<String>,
     /// Sometimes a URL String
-    source: String,
-    characters: String,
-    material: String,
-    creator: String,
+    pub source: String,
+    pub characters: String,
+    pub material: String,
+    pub creator: String,
     #[serde(rename = "anime-pictures_id")]
-    anime_pictures_id: Option<u32>,
-    gelbooru_id: Option<u32>,
-    yandere_id: Option<u32>,
-    danbooru_id: u32,
+    pub anime_pictures_id: Option<u32>,
+    pub gelbooru_id: Option<u32>,
+    pub yandere_id: Option<u32>,
+    pub danbooru_id: u32,
 }
 
 #[derive(Debug, Deserialize)]
 pub struct SauceYandereData {
-    ext_urls: Vec<String>,
+    pub ext_urls: Vec<String>,
     /// Sometimes a URL String
-    source: String,
-    characters: String,
-    material: String,
-    creator: String,
+    pub source: String,
+    pub characters: String,
+    pub material: String,
+    pub creator: String,
     #[serde(rename = "anime-pictures_id")]
-    anime_pictures_id: Option<u32>,
-    gelbooru_id: Option<u32>,
-    yandere_id: u32,
-    danbooru_id: Option<u32>,
+    pub anime_pictures_id: Option<u32>,
+    pub gelbooru_id: Option<u32>,
+    pub yandere_id: u32,
+    pub danbooru_id: Option<u32>,
 }
 
 #[derive(Debug, Deserialize)]
 pub struct SauceFAKKUData {
-    ext_urls: Vec<String>,
-    source: String,
-    creator: String,
+    pub ext_urls: Vec<String>,
+    pub source: String,
+    pub creator: String,
 }
 
 #[derive(Debug, Deserialize)]
 pub struct SauceEHentaiData {
-    ext_urls: Vec<String>,
-    source: String,
-    creator: Vec<String>,
-    eng_name: Option<String>,
-    jp_name: Option<String>,
+    pub ext_urls: Vec<String>,
+    pub source: String,
+    pub creator: Vec<String>,
+    pub eng_name: Option<String>,
+    pub jp_name: Option<String>,
 }
 
 #[derive(Debug, Deserialize)]
 pub struct SauceAnimeData {
-    ext_urls: Vec<String>,
-    anidb_aid: u32,
-    part: Option<String>,
-    year: Option<String>,
-    est_time: String,
-    source: String,
+    pub ext_urls: Vec<String>,
+    pub anidb_aid: u32,
+    pub part: Option<String>,
+    pub year: Option<String>,
+    pub est_time: String,
+    pub source: String,
 }
 
 #[derive(Debug, Deserialize)]
 pub struct SauceSankakuData {
-    ext_urls: Vec<String>,
-    sankaku_id: u32,
-    creator: String,
-    material: String,
-    characters: String,
-    source: String,
+    pub ext_urls: Vec<String>,
+    pub sankaku_id: u32,
+    pub creator: String,
+    pub material: String,
+    pub characters: String,
+    pub source: String,
 }
 
 #[derive(Debug, Deserialize)]
 pub struct SauceE621Data {
-    ext_urls: Vec<String>,
+    pub ext_urls: Vec<String>,
     /// Sometimes a URL String
-    source: String,
-    characters: String,
-    material: String,
-    creator: String,
-    e621_id: u32,
+    pub source: String,
+    pub characters: String,
+    pub material: String,
+    pub creator: String,
+    pub e621_id: u32,
     #[serde(rename = "anime-pictures_id")]
-    anime_pictures_id: Option<u32>,
-    gelbooru_id: Option<u32>,
-    yandere_id: Option<u32>,
-    danbooru_id: Option<u32>,
+    pub anime_pictures_id: Option<u32>,
+    pub gelbooru_id: Option<u32>,
+    pub yandere_id: Option<u32>,
+    pub danbooru_id: Option<u32>,
 }
 
 #[derive(Debug, Deserialize)]
 pub struct SauceBcyData {
-    bcy_id: u32,
-    member_name: String,
-    member_id: u32,
-    member_link_id: u32,
-    bcy_type: String,
-    title: String,
+    pub ext_urls: Vec<String>,
+    pub bcy_id: u32,
+    pub member_name: String,
+    pub member_id: u32,
+    pub member_link_id: u32,
+    pub bcy_type: String,
+    pub title: String,
 }
 
 #[derive(Debug, Deserialize)]
 pub struct SauceDeviantArtData {
-    da_id: String,
-    author_name: String,
-    author_url: String,
-    title: String,
+    pub ext_urls: Vec<String>,
+    pub da_id: String,
+    pub author_name: String,
+    pub author_url: String,
+    pub title: String,
 }
 
 #[derive(Debug, Deserialize)]
 pub struct SaucePawooData {
-    created_at: String,
-    pawoo_id: u32,
-    pawoo_user_acct: String,
-    pawoo_user_username: String,
-    pawoo_user_display_name: String,
+    pub ext_urls: Vec<String>,
+    pub created_at: String,
+    pub pawoo_id: u32,
+    pub pawoo_user_acct: String,
+    pub pawoo_user_username: String,
+    pub pawoo_user_display_name: String,
 }
 
 #[derive(Debug, Deserialize)]
 pub struct SauceMadokamiData {
-    mu_id: u32,
-    source: String,
-    part: String,
+    pub ext_urls: Vec<String>,
+    pub mu_id: u32,
+    pub source: String,
+    pub part: String,
     #[serde(rename = "type")]
-    r#type: String,
+    pub r#type: String,
 }
 
 #[derive(Debug, Deserialize)]
 pub struct SauceMangadexData {
-    md_id: String,
-    mu_id: Option<u32>,
-    mal_id: Option<u32>,
-    source: String,
-    part: String,
-    artist: String,
-    author: String,
+    pub ext_urls: Vec<String>,
+    pub md_id: String,
+    pub mu_id: Option<u32>,
+    pub mal_id: Option<u32>,
+    pub source: String,
+    pub part: String,
+    pub artist: String,
+    pub author: String,
 }
 
 #[derive(Debug, Deserialize)]
 pub struct SauceFurAffinityData {
-    fa_id: u32,
-    author_name: String,
-    author_url: String,
-    title: String,
+    pub ext_urls: Vec<String>,
+    pub fa_id: u32,
+    pub author_name: String,
+    pub author_url: String,
+    pub title: String,
 }
 
 #[derive(Debug, Deserialize)]
 pub struct SauceTwitterData {
-    created_at: String,
-    tweet_id: String,
-    twitter_user_id: String,
-    twitter_user_handle: String,
+    pub ext_urls: Vec<String>,
+    pub created_at: String,
+    pub tweet_id: String,
+    pub twitter_user_id: String,
+    pub twitter_user_handle: String,
 }
 
 #[derive(Debug, Deserialize)]
 pub struct SauceFurryNetworkData {
-    fn_id: u32,
-    fn_type: String,
-    author_name: String,
-    author_url: String,
-    title: String,
+    pub ext_urls: Vec<String>,
+    pub fn_id: u32,
+    pub fn_type: String,
+    pub author_name: String,
+    pub author_url: String,
+    pub title: String,
 }
 
 #[derive(Debug, Deserialize)]
 pub struct SauceKemonoData {
-    published: String,
-    title: String,
-    service: String,
-    service_name: String,
-    id: String,
-    user_id: String,
-    user_name: String,
+    pub ext_urls: Vec<String>,
+    pub published: String,
+    pub title: String,
+    pub service: String,
+    pub service_name: String,
+    pub id: String,
+    pub user_id: String,
+    pub user_name: String,
 }
