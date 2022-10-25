@@ -3,9 +3,11 @@ use std::env;
 use serde::de::{Deserializer, Error};
 use serde::Deserialize;
 use serde_json::Value;
-use twilight_model::channel::embed::EmbedFooter;
+use twilight_model::channel::embed::{EmbedAuthor, EmbedFooter};
 use twilight_model::{channel::Attachment, http::attachment::Attachment as HttpAttachment};
-use twilight_util::builder::embed::{EmbedBuilder, ImageSource};
+use twilight_util::builder::embed::{
+    EmbedAuthorBuilder, EmbedBuilder, EmbedFieldBuilder, ImageSource,
+};
 
 use super::{censor_image, get_bytes};
 
@@ -56,6 +58,23 @@ pub async fn build_embed(
             embed = embed.url(url)
         }
     }
+
+    let embed = match data.data {
+        ResData::Pixiv(data) => embed
+            .author(
+                EmbedAuthorBuilder::new(data.member_name)
+                    .url(format!("https://www.pixiv.net/users/${}", data.member_id)),
+            )
+            .title(data.title),
+        ResData::Anime(data) => if let Some(part) = data.part {
+            embed.field(EmbedFieldBuilder::new("Part:", part).inline())
+        } else {
+            embed
+        }
+        .field(EmbedFieldBuilder::new("Timestamp:", data.est_time).inline())
+        .title(data.source),
+        _ => embed,
+    };
 
     Ok((embed, attachment))
 }
@@ -112,7 +131,9 @@ impl<'de> Deserialize<'de> for Res {
                 ResData::EHentai(SauceEHentaiData::deserialize(data).map_err(D::Error::custom)?)
             }
             21 | 22 => ResData::Anime(SauceAnimeData::deserialize(data).map_err(D::Error::custom)?),
-            25 => ResData::Gelbooru(SauceGelbooruData::deserialize(data).map_err(D::Error::custom)?),
+            25 => {
+                ResData::Gelbooru(SauceGelbooruData::deserialize(data).map_err(D::Error::custom)?)
+            }
             27 => ResData::Sankaku(SauceSankakuData::deserialize(data).map_err(D::Error::custom)?),
             29 => ResData::E621(SauceE621Data::deserialize(data).map_err(D::Error::custom)?),
             31 => ResData::Bcy(SauceBcyData::deserialize(data).map_err(D::Error::custom)?),
@@ -125,10 +146,10 @@ impl<'de> Deserialize<'de> for Res {
             }
             37 | 371 => {
                 ResData::Mangadex(SauceMangadexData::deserialize(data).map_err(D::Error::custom)?)
-            },
-            39 => {
-                ResData::Artstation(SauceArtstationData::deserialize(data).map_err(D::Error::custom)?)
-            },
+            }
+            39 => ResData::Artstation(
+                SauceArtstationData::deserialize(data).map_err(D::Error::custom)?,
+            ),
             40 => ResData::FurAffinity(
                 SauceFurAffinityData::deserialize(data).map_err(D::Error::custom)?,
             ),
