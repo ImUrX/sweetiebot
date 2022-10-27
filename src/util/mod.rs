@@ -1,4 +1,9 @@
-use std::{io::Cursor, sync::Arc, time::Duration};
+use std::{
+    fmt::{Display, Formatter},
+    io::Cursor,
+    sync::Arc,
+    time::Duration,
+};
 
 use anyhow::{ensure, Result};
 use bytes::Bytes;
@@ -7,11 +12,13 @@ use image::{imageops::FilterType, io::Reader as ImageReader};
 use include_dir::{include_dir, Dir};
 use lazy_static::lazy_static;
 
+use regex::Regex;
 use skia_safe::{
     scalar,
     textlayout::{FontCollection, ParagraphBuilder, TypefaceFontProvider},
     Data, Typeface,
 };
+use substring::Substring;
 use tokio::{task, time::timeout};
 use twilight_http::Client as HttpClient;
 use twilight_model::{
@@ -128,6 +135,22 @@ pub fn seconds_to_timestamp(seconds: u32) -> String {
     }
     vec.push(format!("{:02}", seconds % 60));
     vec.join(":")
+}
+
+pub fn shortify(text: &str, limit: usize) -> &str {
+    lazy_static! {
+        static ref RE: Regex = Regex::new(r"/((?:.|\n)+?\.)( +)?\n/g").unwrap();
+    }
+    if limit == 0 || text.len() <= limit {
+        return text;
+    }
+
+    let paragraph = if let Some(group) = RE.find(text) {
+        group.as_str()
+    } else {
+        text
+    };
+    paragraph.substring(0, limit - 1)
 }
 
 pub struct EmbedList {
@@ -444,6 +467,17 @@ impl EmbedList {
                     url: None,
                 }),
             ]),
+        }
+    }
+}
+
+pub struct DisplayOption<T: Display>(pub Option<T>);
+
+impl<T: Display> Display for DisplayOption<T> {
+    fn fmt(&self, f: &mut Formatter) -> std::fmt::Result {
+        match self.0 {
+            Some(ref val) => write!(f, "{}", val),
+            None => write!(f, ""),
         }
     }
 }

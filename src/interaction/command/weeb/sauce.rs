@@ -60,7 +60,7 @@ impl SauceTraceMoe {
         );
 
         let nsfw = info.is_nsfw_interaction(interaction).await;
-        for data in res.result.iter().take(5) {
+        for data in res.result.iter().take(10) {
             let (embed, attachment) = build_tracemoe_embed(data, nsfw).await?;
             embed_list.add(embed.build(), Some(attachment));
         }

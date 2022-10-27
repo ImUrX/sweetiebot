@@ -4,12 +4,13 @@ use serde::de::{Deserializer, Error};
 use serde::Deserialize;
 use serde_json::Value;
 use twilight_model::channel::embed::EmbedFooter;
+use twilight_model::util::Timestamp;
 use twilight_model::{channel::Attachment, http::attachment::Attachment as HttpAttachment};
 use twilight_util::builder::embed::{
     EmbedAuthorBuilder, EmbedBuilder, EmbedFieldBuilder, ImageSource,
 };
 
-use super::{censor_image, get_bytes};
+use super::{censor_image, get_bytes, shortify};
 
 pub async fn fetch(attachment: &Attachment) -> anyhow::Result<Data> {
     let client = reqwest::Client::new();
@@ -100,7 +101,66 @@ pub async fn build_embed(
                     niconico.member_id
                 )),
             ),
-            _ => embed,
+            ResData::Twitter(twitter) => embed
+                .title(format!("Tweet by {}", twitter.twitter_user_handle))
+                .timestamp(Timestamp::parse(&twitter.created_at)?),
+            ResData::EHentai(ehentai) => {
+                embed
+                    .title(ehentai.source)
+                    .author(EmbedAuthorBuilder::new(shortify(
+                        &ehentai.creator.join(" & "),
+                        50,
+                    )))
+            }
+            ResData::Bcy(bcy) => embed.title(bcy.title).author(
+                EmbedAuthorBuilder::new(bcy.member_name)
+                    .url(format!("https://bcy.net/u/{}", bcy.member_link_id)),
+            ),
+            ResData::Pawoo(pawoo) => embed.title(format!("Toot by {}", pawoo.pawoo_user_username)),
+            ResData::FAKKU(SauceFAKKUData {
+                source, creator, ..
+            })
+            | ResData::Sankaku(SauceSankakuData {
+                source, creator, ..
+            })
+            | ResData::Yandere(SauceYandereData {
+                source, creator, ..
+            })
+            | ResData::Danbooru(SauceDanbooruData {
+                source, creator, ..
+            })
+            | ResData::E621(SauceE621Data {
+                source, creator, ..
+            })
+            | ResData::Gelbooru(SauceGelbooruData {
+                source, creator, ..
+            }) => embed.title(source).author(EmbedAuthorBuilder::new(creator)),
+            ResData::Madokami(madokami) => embed
+                .title(madokami.source)
+                .field(EmbedFieldBuilder::new("Part:", madokami.part).inline()),
+            ResData::Kemono(kemono) => embed.title(kemono.title).author(
+                EmbedAuthorBuilder::new(kemono.user_name)
+                    .url(kemono.ext_urls[1].clone())
+                    .icon_url(ImageSource::url(format!(
+                        "https://kemono.party/icons/{}/{}",
+                        kemono.service, kemono.user_id
+                    ))?),
+            ),
+            ResData::Mangadex(mangadex) => embed
+                .title(mangadex.source)
+                .author(EmbedAuthorBuilder::new(format!(
+                    "{}{}",
+                    mangadex.author,
+                    if mangadex.author.contains(&mangadex.artist) {
+                        format!(", {}", mangadex.artist)
+                    } else {
+                        "".to_string()
+                    }
+                )))
+                .field(EmbedFieldBuilder::new("Chapter:", mangadex.part).inline()),
+            ResData::Artstation(artstation) => embed
+                .title(artstation.title)
+                .author(EmbedAuthorBuilder::new(artstation.author_name).url(artstation.author_url)),
         };
 
     Ok((embed, attachment))
