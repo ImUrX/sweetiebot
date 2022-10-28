@@ -305,7 +305,7 @@ impl EmbedList {
                     .http
                     .interaction(self.application_id)
                     .update_response(&interaction.token)
-                    .components(None)?
+                    .components(Some(&[]))?
                     .exec()
                     .await?;
                 Ok(())
@@ -438,7 +438,7 @@ impl EmbedList {
                     .http
                     .interaction(self.application_id)
                     .update_response(&interaction.token)
-                    .components(None)?
+                    .components(Some(&[]))?
                     .exec()
                     .await?;
                 Ok(())
