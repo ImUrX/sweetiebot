@@ -55,7 +55,7 @@ pub async fn build_embed(
 
     {
         let ext_urls = res.data.get_ext_urls();
-        if let Some(url) = ext_urls.get(0) {
+        if let Some(_slice @ Some(url)) = ext_urls.map(|x| x.get(0)) {
             embed = embed.url(url)
         }
     }
@@ -276,28 +276,28 @@ pub enum ResData {
 }
 
 impl ResData {
-    pub fn get_ext_urls(&'_ self) -> &'_ [String] {
+    pub fn get_ext_urls(&'_ self) -> Option<&'_ [String]> {
         match self {
-            Self::Pixiv(data) => &data.ext_urls,
-            Self::NicoNico(data) => &data.ext_urls,
-            Self::Danbooru(data) => &data.ext_urls,
-            Self::Yandere(data) => &data.ext_urls,
-            Self::FAKKU(data) => &data.ext_urls,
-            Self::EHentai(data) => &data.ext_urls,
-            Self::Anime(data) => &data.ext_urls,
-            Self::Gelbooru(data) => &data.ext_urls,
-            Self::Sankaku(data) => &data.ext_urls,
-            Self::E621(data) => &data.ext_urls,
-            Self::Bcy(data) => &data.ext_urls,
-            Self::DeviantArt(data) => &data.ext_urls,
-            Self::Pawoo(data) => &data.ext_urls,
-            Self::Madokami(data) => &data.ext_urls,
-            Self::Mangadex(data) => &data.ext_urls,
-            Self::Artstation(data) => &data.ext_urls,
-            Self::FurAffinity(data) => &data.ext_urls,
-            Self::Twitter(data) => &data.ext_urls,
-            Self::FurryNetwork(data) => &data.ext_urls,
-            Self::Kemono(data) => &data.ext_urls,
+            Self::Pixiv(data) => Some(&data.ext_urls),
+            Self::NicoNico(data) => Some(&data.ext_urls),
+            Self::Danbooru(data) => Some(&data.ext_urls),
+            Self::Yandere(data) => Some(&data.ext_urls),
+            Self::FAKKU(data) => Some(&data.ext_urls),
+            Self::EHentai(data) => data.ext_urls.as_ref().map(|x| &x[..]),
+            Self::Anime(data) => Some(&data.ext_urls),
+            Self::Gelbooru(data) => Some(&data.ext_urls),
+            Self::Sankaku(data) => Some(&data.ext_urls),
+            Self::E621(data) => Some(&data.ext_urls),
+            Self::Bcy(data) => Some(&data.ext_urls),
+            Self::DeviantArt(data) => Some(&data.ext_urls),
+            Self::Pawoo(data) => Some(&data.ext_urls),
+            Self::Madokami(data) => Some(&data.ext_urls),
+            Self::Mangadex(data) => Some(&data.ext_urls),
+            Self::Artstation(data) => Some(&data.ext_urls),
+            Self::FurAffinity(data) => Some(&data.ext_urls),
+            Self::Twitter(data) => Some(&data.ext_urls),
+            Self::FurryNetwork(data) => Some(&data.ext_urls),
+            Self::Kemono(data) => Some(&data.ext_urls),
         }
     }
 }
@@ -358,7 +358,7 @@ pub struct SauceFAKKUData {
 
 #[derive(Debug, Deserialize, Clone)]
 pub struct SauceEHentaiData {
-    pub ext_urls: Vec<String>,
+    pub ext_urls: Option<Vec<String>>,
     pub source: String,
     pub creator: Vec<String>,
     pub eng_name: Option<String>,
