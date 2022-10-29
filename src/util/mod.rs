@@ -39,6 +39,7 @@ use twilight_util::builder::InteractionResponseDataBuilder;
 
 pub mod saucenao;
 pub mod tracemoe;
+pub mod yandex;
 
 static VALID_FONTS: &[&str] = &["ttf", "ttc", "otf"];
 pub static DEFERRED_RESPONSE: InteractionResponse = InteractionResponse {
