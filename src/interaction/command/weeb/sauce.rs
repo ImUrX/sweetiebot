@@ -7,6 +7,7 @@ use crate::{
     util::{
         saucenao::{build_embed as build_saucenao_embed, fetch as fetch_saucenao},
         tracemoe::{build_embed as build_tracemoe_embed, fetch as fetch_tracemoe},
+        yandex::{build_embed as build_yandex_embed, fetch as fetch_yandex},
         EmbedList, DEFERRED_RESPONSE,
     },
     ClusterData,
@@ -90,6 +91,32 @@ impl SauceSauceNAO {
         for data in res.results.iter().take(10) {
             let (embed, attachment) = build_saucenao_embed(data, nsfw).await?;
             embed_list.add(embed.build(), Some(attachment));
+        }
+        embed_list
+            .defer_reply(interaction, InteractionResponseDataBuilder::new())
+            .await?;
+        Ok(())
+    }
+}
+
+impl SauceYandex {
+    pub async fn run(self, info: ClusterData, interaction: &Interaction) -> Result<()> {
+        info.http
+            .interaction(interaction.application_id)
+            .create_response(interaction.id, &interaction.token, &DEFERRED_RESPONSE)
+            .exec()
+            .await?;
+
+        let res = fetch_yandex(&self.image).await?;
+        let mut embed_list = EmbedList::new(
+            info.http.clone(),
+            interaction.application_id,
+            info.standby.clone(),
+        );
+
+        for data in res.sites.iter().take(10) {
+            let embed = build_yandex_embed(data).await?;
+            embed_list.add(embed.build(), None);
         }
         embed_list
             .defer_reply(interaction, InteractionResponseDataBuilder::new())
