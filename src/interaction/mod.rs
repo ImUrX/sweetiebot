@@ -38,9 +38,6 @@ pub async fn handle_interaction(
                                 SauceCommand::TraceMoe(trace) => {
                                     trace.run(info, &interaction.0).await?
                                 }
-                                SauceCommand::Yandex(yandex) => {
-                                    yandex.run(info, &interaction.0).await?
-                                }
                             }
                         }
                         _ => bail!("Unknown command interaction {}", cmd.name),

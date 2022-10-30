@@ -8,7 +8,7 @@ use twilight_util::builder::embed::{EmbedBuilder, ImageSource};
 
 const URL: &str = "https://yandex.ru/images/search";
 
-// Returns a captcha packet so not possible it seems to use yandex
+/// Returns a captcha packet so not possible to use yandex at the end.
 pub async fn fetch(attachment: &Attachment) -> Result<SiteResponse> {
     lazy_static! {
         static ref RE: Regex = Regex::new(r#"data-state="({&quot;sites&quot;:.+?)"#).unwrap();
@@ -17,7 +17,7 @@ pub async fn fetch(attachment: &Attachment) -> Result<SiteResponse> {
     let form = multipart::Form::new().part(
         "upfile",
         multipart::Part::bytes(super::get_bytes(&attachment.proxy_url).await?.to_vec())
-        .mime_str(attachment.content_type.as_deref().unwrap_or("image/jpeg"))?,
+            .mime_str(attachment.content_type.as_deref().unwrap_or("image/jpeg"))?,
     );
 
     let client = reqwest::Client::new();
