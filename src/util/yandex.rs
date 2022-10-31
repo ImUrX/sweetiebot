@@ -11,7 +11,7 @@ const URL: &str = "https://yandex.ru/images/search";
 /// Returns a captcha packet so not possible to use yandex at the end.
 pub async fn fetch(attachment: &Attachment) -> Result<SiteResponse> {
     lazy_static! {
-        static ref RE: Regex = Regex::new(r#"data-state="({&quot;sites&quot;:.+?)"#).unwrap();
+        static ref RE: Regex = Regex::new(r#"data-state="(\{&quot;sites&quot;:.+?)"#).unwrap();
     }
 
     let form = multipart::Form::new().part(

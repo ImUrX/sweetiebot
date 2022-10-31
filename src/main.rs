@@ -1,11 +1,12 @@
 #![feature(get_mut_unchecked, try_blocks)]
 mod interaction;
 pub mod util;
-use anyhow::{Context, Result};
-use dotenv::dotenv;
+use anyhow::Result;
+use dotenvy::dotenv;
 use futures::stream::StreamExt;
 use interaction::handle_interaction;
 use std::{env, sync::Arc};
+use tokio_cron_scheduler::JobScheduler;
 use twilight_cache_inmemory::{InMemoryCache, ResourceType};
 use twilight_gateway::{
     cluster::{Cluster, ShardScheme},
@@ -14,6 +15,7 @@ use twilight_gateway::{
 use twilight_http::Client as HttpClient;
 use twilight_model::{
     application::interaction::Interaction,
+    gateway::payload::incoming::ChannelUpdate,
     id::{
         marker::{ApplicationMarker, UserMarker},
         Id,
@@ -25,6 +27,7 @@ use twilight_standby::Standby;
 async fn main() -> Result<()> {
     dotenv().ok();
     let token = env::var("DISCORD_TOKEN")?;
+    let scheduler = JobScheduler::new().await?;
 
     // Start a single shard.
     let scheme = ShardScheme::Range {
@@ -66,21 +69,24 @@ async fn main() -> Result<()> {
     };
 
     // Since we only care about messages, make the cache only process messages.
-    let cache = InMemoryCache::builder()
-        .resource_types(ResourceType::MESSAGE)
-        .build();
+    let cache = Arc::new(
+        InMemoryCache::builder()
+            .resource_types(ResourceType::CHANNEL)
+            .build(),
+    );
 
     let info = ClusterData {
         http: http.clone(),
         standby: standby.clone(),
         bot_id,
         application_id,
+        cache,
     };
     // Startup an event loop to process each event in the event stream as they
     // come in.
     while let Some((shard_id, event)) = events.next().await {
         // Update the cache.
-        cache.update(&event);
+        info.cache.update(&event);
 
         // Spawn a new task to handle the event
         tokio::spawn(handle_event(shard_id, event, info.clone()));
@@ -125,22 +131,21 @@ pub struct ClusterData {
     pub application_id: Id<ApplicationMarker>,
     pub bot_id: Id<UserMarker>,
     pub standby: Arc<Standby>,
+    pub cache: Arc<InMemoryCache>,
 }
 
 impl ClusterData {
-    pub async fn is_nsfw_interaction(&self, interaction: &Interaction) -> bool {
-        let nsfw: Result<bool> = try {
-            !interaction.is_dm()
-                && self
-                    .http
-                    .channel(interaction.channel_id.context("no channel")?)
-                    .exec()
-                    .await?
-                    .model()
-                    .await?
-                    .nsfw
-                    .unwrap_or(false)
-        };
-        nsfw.unwrap_or(false)
+    pub async fn is_nsfw_interaction(&self, interaction: &Interaction) -> Result<bool> {
+        if interaction.is_dm() {
+            return Ok(false);
+        }
+        let channel_id = interaction.channel_id.expect("no channel id");
+        if let Some(channel) = self.cache.channel(channel_id) {
+            Ok(channel.nsfw.unwrap_or(false))
+        } else {
+            let channel = ChannelUpdate(self.http.channel(channel_id).exec().await?.model().await?);
+            self.cache.update(&channel);
+            Ok(channel.0.nsfw.unwrap_or(false))
+        }
     }
 }
