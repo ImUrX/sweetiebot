@@ -1,12 +1,13 @@
-#![feature(get_mut_unchecked, try_blocks)]
+#![feature(get_mut_unchecked, try_blocks, exit_status_error)]
 mod interaction;
 pub mod util;
 use anyhow::Result;
 use dotenvy::dotenv;
 use futures::stream::StreamExt;
 use interaction::handle_interaction;
+use sqlx::mysql::MySqlPoolOptions;
 use std::{env, sync::Arc};
-use tokio_cron_scheduler::JobScheduler;
+use tokio_cron_scheduler::{Job, JobScheduler};
 use twilight_cache_inmemory::{InMemoryCache, ResourceType};
 use twilight_gateway::{
     cluster::{Cluster, ShardScheme},
@@ -22,12 +23,33 @@ use twilight_model::{
     },
 };
 use twilight_standby::Standby;
+use util::animethemes;
 
 #[tokio::main]
 async fn main() -> Result<()> {
     dotenv().ok();
     let token = env::var("DISCORD_TOKEN")?;
+    let pool = MySqlPoolOptions::new()
+        .max_connections(20)
+        .connect(&env::var("DATABASE_URL")?)
+        .await?;
     let scheduler = JobScheduler::new().await?;
+    {
+        if let Err(error) = animethemes::update_database().await {
+            println!("AnimeThemes dump failed {}", error);
+        }
+        scheduler
+            .add(Job::new_async("0 0 0 * * *", move |_uuid, _l| {
+                Box::pin(async move {
+                    if let Err(error) = animethemes::update_database().await {
+                        println!("AnimeThemes dump failed {}", error);
+                    } else {
+                        println!("Updated AnimeThemes dump")
+                    }
+                })
+            })?)
+            .await?;
+    }
 
     // Start a single shard.
     let scheme = ShardScheme::Range {

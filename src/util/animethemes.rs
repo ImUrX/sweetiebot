@@ -1,7 +1,13 @@
+use std::{env, process::Stdio};
+
 use anyhow::Result;
 use serde::Deserialize;
+use sqlx::{prelude::*, query_file, MySql, Pool};
+use tempfile::NamedTempFile;
+use tokio::{fs::File, io, process::Command};
+use tokio_util::io::StreamReader;
 
-pub async fn update_database(pool: &sqlx::MySqlPool) -> Result<()> {
+pub async fn update_database() -> Result<()> {
     let client = reqwest::Client::new();
     let index = client
         .get("https://api.animethemes.moe/dump/")
@@ -10,9 +16,41 @@ pub async fn update_database(pool: &sqlx::MySqlPool) -> Result<()> {
         .json::<DumpIndex>()
         .await?;
 
-    let sql = client.get(index.dumps.last().unwrap().link.clone()).send().await?.text().await?;
-	sqlx::query(&sql).execute(pool).await?;
-    Ok(())
+    use futures::TryStreamExt;
+    let mut reader = StreamReader::new(
+        client
+            .get(index.dumps.last().unwrap().link.clone())
+            .send()
+            .await?
+            .bytes_stream()
+            .map_err(|e| std::io::Error::new(std::io::ErrorKind::Other, e)),
+    );
+
+    let url = env::var("DATABASE_URL").unwrap();
+    let (dot, at, slash) = (
+        url[8..].find(':').unwrap() + 8,
+        url.find('@').unwrap(),
+        url[8..].find("/").unwrap() + 8,
+    );
+    let database = if let Some(question) = url.find('?') {
+        &url[slash + 1..question]
+    } else {
+        &url[slash + 1..]
+    };
+    let mut child = Command::new("mysql")
+        .args(&[
+            "-u",
+            &url[8..dot],
+            &format!("--password={}", &url[dot + 1..at]),
+            database,
+        ])
+        .stdin(Stdio::piped())
+        .spawn()
+        .expect("failed to spawn mysql cli");
+    let mut stdin = child.stdin.take().unwrap();
+    io::copy(&mut reader, &mut stdin).await?;
+    drop(stdin);
+    Ok(child.wait().await?.exit_ok()?)
 }
 
 #[derive(Debug, Deserialize)]
