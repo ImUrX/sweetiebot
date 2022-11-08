@@ -35,11 +35,11 @@ async fn main() -> Result<()> {
         .await?;
     let scheduler = JobScheduler::new().await?;
     {
-        println!("Updating AnimeThemes local cache");
+        /*println!("Updating AnimeThemes local cache");
         if let Err(error) = animethemes::update_database().await {
             println!("AnimeThemes cache failed {}", error);
         }
-        println!("Updated AnimeThemes local cache");
+        println!("Updated AnimeThemes local cache");*/
         scheduler
             .add(Job::new_async("0 0 0 * * *", move |_uuid, _l| {
                 Box::pin(async move {
