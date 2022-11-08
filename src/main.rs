@@ -5,7 +5,7 @@ use anyhow::Result;
 use dotenvy::dotenv;
 use futures::stream::StreamExt;
 use interaction::handle_interaction;
-use sqlx::mysql::MySqlPoolOptions;
+use sqlx::{mysql::MySqlPoolOptions, MySql, Pool};
 use std::{env, sync::Arc};
 use tokio_cron_scheduler::{Job, JobScheduler};
 use twilight_cache_inmemory::{InMemoryCache, ResourceType};
@@ -35,16 +35,18 @@ async fn main() -> Result<()> {
         .await?;
     let scheduler = JobScheduler::new().await?;
     {
+        println!("Updating AnimeThemes local cache");
         if let Err(error) = animethemes::update_database().await {
-            println!("AnimeThemes dump failed {}", error);
+            println!("AnimeThemes cache failed {}", error);
         }
+        println!("Updated AnimeThemes local cache");
         scheduler
             .add(Job::new_async("0 0 0 * * *", move |_uuid, _l| {
                 Box::pin(async move {
                     if let Err(error) = animethemes::update_database().await {
-                        println!("AnimeThemes dump failed {}", error);
+                        println!("AnimeThemes cache failed {}", error);
                     } else {
-                        println!("Updated AnimeThemes dump")
+                        println!("Updated AnimeThemes cache")
                     }
                 })
             })?)
@@ -103,6 +105,7 @@ async fn main() -> Result<()> {
         bot_id,
         application_id,
         cache,
+        anime_themes_pool: pool,
     };
     // Startup an event loop to process each event in the event stream as they
     // come in.
@@ -154,6 +157,7 @@ pub struct ClusterData {
     pub bot_id: Id<UserMarker>,
     pub standby: Arc<Standby>,
     pub cache: Arc<InMemoryCache>,
+    pub anime_themes_pool: Pool<MySql>,
 }
 
 impl ClusterData {

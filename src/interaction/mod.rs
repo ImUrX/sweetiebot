@@ -10,6 +10,7 @@ use crate::ClusterData;
 
 use self::command::weeb::{
     japanese::{JishoCommand, JishoCommandAutocomplete},
+    op::{OpeningCommand, OpeningCommandAutocomplete},
     sauce::SauceCommand,
 };
 
@@ -26,6 +27,11 @@ pub async fn handle_interaction(
                     match cmd.name.as_str() {
                         "japanese" => {
                             JishoCommand::from_interaction((**cmd).clone().into())?
+                                .run(info, &interaction.0)
+                                .await?
+                        }
+                        "op" => {
+                            OpeningCommand::from_interaction((**cmd).clone().into())?
                                 .run(info, &interaction.0)
                                 .await?
                         }
@@ -47,6 +53,11 @@ pub async fn handle_interaction(
                     match cmd.name.as_str() {
                         "japanese" => {
                             JishoCommandAutocomplete::from_interaction((**cmd).clone().into())?
+                                .run(info, &interaction.0)
+                                .await?
+                        }
+                        "op" => {
+                            OpeningCommandAutocomplete::from_interaction((**cmd).clone().into())?
                                 .run(info, &interaction.0)
                                 .await?
                         }

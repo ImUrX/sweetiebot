@@ -5,10 +5,8 @@ use chrono::{prelude::*, serde::ts_seconds_option};
 use lazy_static::lazy_static;
 use regex::Regex;
 use serde::Deserialize;
-use sqlx::{prelude::*, query, query_as, query_file, MySql, Pool};
-use substring::Substring;
-use tempfile::NamedTempFile;
-use tokio::{fs::File, io, process::Command};
+use sqlx::{query_as, MySql, Pool};
+use tokio::{io, process::Command};
 use tokio_util::io::StreamReader;
 
 pub async fn update_database() -> Result<()> {
@@ -34,7 +32,7 @@ pub async fn update_database() -> Result<()> {
     let (dot, at, slash) = (
         url[8..].find(':').unwrap() + 8,
         url.find('@').unwrap(),
-        url[8..].find("/").unwrap() + 8,
+        url[8..].find('/').unwrap() + 8,
     );
     let database = if let Some(question) = url.find('?') {
         &url[slash + 1..question]
@@ -43,7 +41,7 @@ pub async fn update_database() -> Result<()> {
     };
 
     let mut child = Command::new("mysql")
-        .args(&[
+        .args([
             "-u",
             &url[8..dot],
             &format!("--password={}", &url[dot + 1..at]),
@@ -106,8 +104,9 @@ LIMIT ?
 }
 
 pub async fn get_video(theme_id: u64, pool: Pool<MySql>) -> Result<Vec<AnimeThemeVideo>> {
-    Ok(query_as!(AnimeThemeVideo,
-    "
+    Ok(query_as!(
+        AnimeThemeVideo,
+        "
 SELECT songs.title as title, videos.basename as basename,
     artists.name as artist_name, artist_song.as as as_who
 FROM anime_theme_entries
@@ -125,7 +124,7 @@ LEFT JOIN artists
 ON artists.artist_id = artist_song.artist_id
 WHERE anime_theme_entries.theme_id = ?
     ",
-    theme_id
+        theme_id
     )
     .fetch_all(&pool)
     .await?)

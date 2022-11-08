@@ -2614,6 +2614,7 @@ dependencies = [
  "include_dir",
  "itertools 0.10.3",
  "lazy_static",
+ "rand 0.8.5",
  "regex",
  "reqwest",
  "scraper",

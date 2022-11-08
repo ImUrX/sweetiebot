@@ -51,6 +51,27 @@ pub static DEFERRED_COMPONENT_RESPONSE: InteractionResponse = InteractionRespons
     kind: InteractionResponseType::DeferredUpdateMessage,
     data: None,
 };
+pub static SAD_EMOJIS: &[&str] = &[
+    ":c",
+    ":/",
+    ";-;",
+    "T-T",
+    "（´＿｀）",
+    ":<",
+    "（; ;）",
+    "((´д｀))",
+    "sad emoji",
+    r"¯\_(ツ)_/¯",
+    r"\:",
+    "ɔ:",
+    "(╯︵╰,)",
+    ">:",
+    ":p",
+    "q:",
+    "(im out of ideas)",
+    ":(",
+    "😖",
+];
 
 pub static ASSETS_DIR: Dir = include_dir!("$CARGO_MANIFEST_DIR/assets");
 lazy_static! {
