@@ -37,12 +37,13 @@ itertools = "0.10.3"
 bytes = "1"
 regex = "1"
 substring = "1.4.5"
-sqlx = { version = "0.6", features = ["runtime-tokio-native-tls", "mysql", "macros", "time"] }
+sqlx = { version = "0.6", features = ["runtime-tokio-native-tls", "mysql", "macros", "migrate", "time", "tls"] }
 html-escape = "0.2"
 tokio-cron-scheduler = "*"
 tempfile = "3"
 chrono = { version = "0.4", features = ["serde"] }
 rand = "0.8.5"
+bonsaidb = { version = "0.4", features = ["local-full"] }
 
 [profile.dev.package.sqlx-macros]
 opt-level = 3

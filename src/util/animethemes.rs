@@ -1,6 +1,13 @@
-use std::{env, process::Stdio};
+use std::{env, process::Stdio, sync::Arc};
 
 use anyhow::Result;
+use bonsaidb::{
+    core::keyvalue::{AsyncKeyValue, KeyStatus},
+    local::{
+        config::{Builder, StorageConfiguration},
+        AsyncDatabase,
+    },
+};
 use chrono::{prelude::*, serde::ts_seconds_option};
 use lazy_static::lazy_static;
 use regex::Regex;
@@ -9,7 +16,7 @@ use sqlx::{query_as, MySql, Pool};
 use tokio::{io, process::Command};
 use tokio_util::io::StreamReader;
 
-pub async fn update_database() -> Result<()> {
+pub async fn update_database(bonsai: Arc<AsyncDatabase>) -> Result<()> {
     let client = reqwest::Client::new();
     let index = client
         .get("https://api.animethemes.moe/dump/")
@@ -18,10 +25,16 @@ pub async fn update_database() -> Result<()> {
         .json::<DumpIndex>()
         .await?;
 
+    let last = index.dumps.last().unwrap();
+    if !matches!(bonsai.set_key("animethemes_version", &last.id).await?, KeyStatus::NotChanged) {
+        return Ok(())
+    }
+    
+
     use futures::TryStreamExt;
     let mut reader = StreamReader::new(
         client
-            .get(index.dumps.last().unwrap().link.clone())
+            .get(last.link.clone())
             .send()
             .await?
             .bytes_stream()
@@ -89,6 +102,7 @@ WHERE (anime.name LIKE CONCAT("%", ?, "%")
 OR songs.title LIKE CONCAT("%", ?, "%")
 OR anime_synonyms.text LIKE CONCAT("%", ?, "%"))
 AND anime_themes.slug LIKE CONCAT("%", ?, "%")
+GROUP BY theme_id
 LIMIT ?
         "#,
         replaced,

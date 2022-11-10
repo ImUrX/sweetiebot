@@ -33,7 +33,7 @@ pub struct OpeningCommandAutocomplete {
 impl OpeningCommandAutocomplete {
     pub async fn run(self, info: ClusterData, interaction: &Interaction) -> Result<()> {
         let vec = if let AutocompleteValue::Focused(input) = &self.query {
-            let res = search_theme(input, 25, info.anime_themes_pool).await?;
+            let res = search_theme(input, 25, info.pool).await?;
             res.iter()
                 .map(|s| CommandOptionChoice::String {
                     name: format!("{} {}", s.name, s.slug),
@@ -44,7 +44,6 @@ impl OpeningCommandAutocomplete {
         } else {
             Vec::new()
         };
-        
 
         let response = InteractionResponse {
             kind: InteractionResponseType::ApplicationCommandAutocompleteResult,
@@ -67,7 +66,7 @@ impl OpeningCommand<'_> {
                 .parse::<u64>()
                 .expect("not a number after null character")
         } else {
-            let possible = search_theme(&self.query, 1, info.anime_themes_pool.clone()).await?;
+            let possible = search_theme(&self.query, 1, info.pool.clone()).await?;
             if let Some(theme) = possible.get(0) {
                 theme.theme_id
             } else {
@@ -93,7 +92,7 @@ impl OpeningCommand<'_> {
             }
         };
 
-        let videos = get_video(theme_id, info.anime_themes_pool).await?;
+        let videos = get_video(theme_id, info.pool).await?;
         let mut prelude = "".to_string();
         if let Some(title) = &videos[0].title {
             prelude += &format!("**{title}**");

@@ -2,7 +2,10 @@
 mod interaction;
 pub mod util;
 use anyhow::Result;
-use dotenvy::dotenv;
+use bonsaidb::local::{
+    config::{Builder, StorageConfiguration},
+    AsyncDatabase,
+};
 use futures::stream::StreamExt;
 use interaction::handle_interaction;
 use sqlx::{mysql::MySqlPoolOptions, MySql, Pool};
@@ -27,23 +30,28 @@ use util::animethemes;
 
 #[tokio::main]
 async fn main() -> Result<()> {
-    dotenv().ok();
+    dotenvy::dotenv().ok();
     let token = env::var("DISCORD_TOKEN")?;
+    let bonsai = Arc::new(
+        AsyncDatabase::open::<()>(StorageConfiguration::new(env::var("BONSAI_FILE")?)).await?,
+    );
     let pool = MySqlPoolOptions::new()
         .max_connections(20)
         .connect(&env::var("DATABASE_URL")?)
         .await?;
     let scheduler = JobScheduler::new().await?;
     {
-        /*println!("Updating AnimeThemes local cache");
-        if let Err(error) = animethemes::update_database().await {
+        let bonsai = bonsai.clone();
+        println!("Updating AnimeThemes local cache");
+        if let Err(error) = animethemes::update_database(bonsai.clone()).await {
             println!("AnimeThemes cache failed {}", error);
         }
-        println!("Updated AnimeThemes local cache");*/
+        println!("Updated AnimeThemes local cache");
         scheduler
             .add(Job::new_async("0 0 0 * * *", move |_uuid, _l| {
+                let bonsai = bonsai.clone();
                 Box::pin(async move {
-                    if let Err(error) = animethemes::update_database().await {
+                    if let Err(error) = animethemes::update_database(bonsai).await {
                         println!("AnimeThemes cache failed {}", error);
                     } else {
                         println!("Updated AnimeThemes cache")
@@ -105,7 +113,8 @@ async fn main() -> Result<()> {
         bot_id,
         application_id,
         cache,
-        anime_themes_pool: pool,
+        pool,
+        bonsai,
     };
     // Startup an event loop to process each event in the event stream as they
     // come in.
@@ -157,7 +166,8 @@ pub struct ClusterData {
     pub bot_id: Id<UserMarker>,
     pub standby: Arc<Standby>,
     pub cache: Arc<InMemoryCache>,
-    pub anime_themes_pool: Pool<MySql>,
+    pub pool: Pool<MySql>,
+    pub bonsai: Arc<AsyncDatabase>,
 }
 
 impl ClusterData {

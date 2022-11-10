@@ -110,6 +110,7 @@ assets/fonts/
 assets/schemas/
 bin/
 .env
+*.bonsaidb
 
 # Added by cargo
 
