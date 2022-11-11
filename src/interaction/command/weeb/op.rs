@@ -75,7 +75,7 @@ impl OpeningCommand<'_> {
                     data: Some(
                         InteractionResponseDataBuilder::new()
                             .content(format!(
-                                "Couldn't find the anime theme {}",
+                                "Couldn't find the anime theme {}\nHint: Use the suggestions that pop up while you write so you can search the precise theme you are searching for.",
                                 SAD_EMOJIS.choose(&mut thread_rng()).unwrap()
                             ))
                             .build(),
