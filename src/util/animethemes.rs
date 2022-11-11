@@ -1,10 +1,7 @@
 use std::{env, process::Stdio, sync::Arc};
 
 use anyhow::Result;
-use bonsaidb::{
-    core::keyvalue::{AsyncKeyValue, KeyStatus},
-    local::AsyncDatabase,
-};
+use bonsaidb::{core::keyvalue::AsyncKeyValue, local::AsyncDatabase};
 use chrono::{prelude::*, serde::ts_seconds_option};
 use lazy_static::lazy_static;
 use regex::Regex;
@@ -23,10 +20,11 @@ pub async fn update_database(bonsai: Arc<AsyncDatabase>) -> Result<()> {
         .await?;
 
     let last = index.dumps.last().unwrap();
-    if matches!(
-        bonsai.set_key("animethemes_version", &last.id).await?,
-        KeyStatus::NotChanged
-    ) {
+    let value: Option<u64> = bonsai
+        .set_key("animethemes_version", &last.id)
+        .returning_previous_as()
+        .await?;
+    if value.map_or(false, |x| x == last.id) {
         return Ok(());
     }
 

@@ -35,8 +35,7 @@ async fn update_commands(info: ClusterData) -> Result<(usize, usize)> {
     for global in globals.iter().filter(|x| {
         interaction::CREATE_COMMANDS
             .iter()
-            .position(|y| y.name == x.name)
-            .is_none()
+            .any(|y| y.name == x.name)
     }) {
         deleted += 1;
         client
@@ -71,8 +70,9 @@ async fn main() -> Result<()> {
         println!("Updating AnimeThemes local cache");
         if let Err(error) = animethemes::update_database(bonsai.clone()).await {
             eprintln!("AnimeThemes cache failed {}", error);
+        } else {
+            println!("Updated AnimeThemes local cache");
         }
-        println!("Updated AnimeThemes local cache");
         scheduler
             .add(Job::new_async("0 0 0 * * *", move |_uuid, _l| {
                 let bonsai = bonsai.clone();

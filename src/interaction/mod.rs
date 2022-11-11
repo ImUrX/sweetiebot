@@ -14,7 +14,7 @@ use twilight_model::{
 };
 use twilight_util::builder::InteractionResponseDataBuilder;
 
-use crate::{ClusterData, util::SAD_EMOJIS};
+use crate::{util::SAD_EMOJIS, ClusterData};
 
 use self::command::weeb::{
     japanese::{JishoCommand, JishoCommandAutocomplete},
@@ -70,7 +70,11 @@ pub async fn handle_interaction(
                     };
 
                     if let Err(e) = &command {
-                        let err_string = format!("An error occurred {}\n```\n{}\n```", SAD_EMOJIS.choose(&mut thread_rng()).unwrap(), e);
+                        let err_string = format!(
+                            "An error occurred {}\n```\n{}\n```",
+                            SAD_EMOJIS.choose(&mut thread_rng()).unwrap(),
+                            e
+                        );
                         let client = info.http.interaction(info.application_id);
                         let msg_error = client
                             .create_response(
