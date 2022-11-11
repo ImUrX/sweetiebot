@@ -23,7 +23,7 @@ pub async fn update_database(bonsai: Arc<AsyncDatabase>) -> Result<()> {
         .await?;
 
     let last = index.dumps.last().unwrap();
-    if !matches!(
+    if matches!(
         bonsai.set_key("animethemes_version", &last.id).await?,
         KeyStatus::NotChanged
     ) {
