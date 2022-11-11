@@ -1,6 +1,7 @@
 use anyhow::{bail, Result};
 
 use once_cell::sync::Lazy;
+use rand::{seq::SliceRandom, thread_rng};
 use twilight_interactions::command::{CommandModel, CreateCommand};
 use twilight_model::{
     application::{
@@ -13,7 +14,7 @@ use twilight_model::{
 };
 use twilight_util::builder::InteractionResponseDataBuilder;
 
-use crate::ClusterData;
+use crate::{ClusterData, util::SAD_EMOJIS};
 
 use self::command::weeb::{
     japanese::{JishoCommand, JishoCommandAutocomplete},
@@ -69,7 +70,7 @@ pub async fn handle_interaction(
                     };
 
                     if let Err(e) = &command {
-                        let err_string = format!("Error: ```\n{}\n```", e);
+                        let err_string = format!("An error occurred {}\n```\n{}\n```", SAD_EMOJIS.choose(&mut thread_rng()).unwrap(), e);
                         let client = info.http.interaction(info.application_id);
                         let msg_error = client
                             .create_response(

@@ -1,4 +1,4 @@
-use anyhow::{bail, Result};
+use anyhow::Result;
 use twilight_interactions::command::{CommandModel, CreateCommand};
 use twilight_model::{application::interaction::Interaction, channel::Attachment};
 use twilight_util::builder::InteractionResponseDataBuilder;
