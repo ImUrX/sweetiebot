@@ -1,8 +1,12 @@
 use anyhow::{bail, Result};
 
-use twilight_interactions::command::CommandModel;
+use once_cell::sync::Lazy;
+use twilight_interactions::command::{CommandModel, CreateCommand};
 use twilight_model::{
-    application::interaction::{InteractionData, InteractionType},
+    application::{
+        command::Command,
+        interaction::{InteractionData, InteractionType},
+    },
     gateway::payload::incoming::InteractionCreate,
 };
 
@@ -15,6 +19,15 @@ use self::command::weeb::{
 };
 
 pub mod command;
+
+pub static CREATE_COMMANDS: Lazy<Vec<Command>> = Lazy::new(|| {
+    vec![
+        JishoCommand::create_command().into(),
+        OpeningCommand::create_command().into(),
+        SauceCommand::create_command().into(),
+    ]
+});
+
 pub async fn handle_interaction(
     _shard_id: u64,
     interaction: Box<InteractionCreate>,

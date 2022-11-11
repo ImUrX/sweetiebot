@@ -28,6 +28,19 @@ use twilight_model::{
 use twilight_standby::Standby;
 use util::animethemes;
 
+async fn update_commands(info: ClusterData) -> Result<(usize, usize)> {
+    let client = info.http.interaction(info.application_id);
+    let globals = client.global_commands().exec().await?.model().await?;
+    let mut deleted = 0;
+    for global in globals.iter().filter(|x| interaction::CREATE_COMMANDS.iter().position(|y| y.name == x.name).is_none()) {
+        deleted += 1;
+        client.delete_global_command(global.id.unwrap()).exec().await?;
+    }
+
+    let list = client.set_global_commands(&interaction::CREATE_COMMANDS).exec().await?.model().await?;
+    Ok((list.len(), deleted))
+}
+
 #[tokio::main]
 async fn main() -> Result<()> {
     dotenvy::dotenv().ok();
@@ -44,7 +57,7 @@ async fn main() -> Result<()> {
         let bonsai = bonsai.clone();
         println!("Updating AnimeThemes local cache");
         if let Err(error) = animethemes::update_database(bonsai.clone()).await {
-            println!("AnimeThemes cache failed {}", error);
+            eprintln!("AnimeThemes cache failed {}", error);
         }
         println!("Updated AnimeThemes local cache");
         scheduler
@@ -52,13 +65,22 @@ async fn main() -> Result<()> {
                 let bonsai = bonsai.clone();
                 Box::pin(async move {
                     if let Err(error) = animethemes::update_database(bonsai).await {
-                        println!("AnimeThemes cache failed {}", error);
+                        eprintln!("AnimeThemes cache failed {}", error);
                     } else {
                         println!("Updated AnimeThemes cache")
                     }
                 })
             })?)
             .await?;
+    }
+
+    {
+        let scheduler = scheduler.clone();
+        tokio::spawn(async move {
+            if let Err(e) = scheduler.start().await {
+                eprintln!("Scheduler error: {:?}", e);
+            }
+        });
     }
 
     // Start a single shard.
@@ -115,7 +137,14 @@ async fn main() -> Result<()> {
         cache,
         pool,
         bonsai,
+        scheduler,
     };
+    
+    {
+        let (updated, deleted) = update_commands(info.clone()).await?;
+        println!("Updated {updated} commands and deleted {deleted} commands.");
+    }
+
     // Startup an event loop to process each event in the event stream as they
     // come in.
     while let Some((shard_id, event)) = events.next().await {
@@ -168,6 +197,7 @@ pub struct ClusterData {
     pub cache: Arc<InMemoryCache>,
     pub pool: Pool<MySql>,
     pub bonsai: Arc<AsyncDatabase>,
+    pub scheduler: JobScheduler,
 }
 
 impl ClusterData {

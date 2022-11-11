@@ -21,18 +21,18 @@ use crate::{
 #[command(name = "op", desc = "Searches for an anime opening or ending")]
 pub struct OpeningCommand<'a> {
     #[command(desc = "Theme to look for", autocomplete = true)]
-    query: Cow<'a, str>,
+    theme: Cow<'a, str>,
 }
 
 #[derive(CommandModel)]
 #[command(autocomplete = true)]
 pub struct OpeningCommandAutocomplete {
-    query: AutocompleteValue<String>,
+    theme: AutocompleteValue<String>,
 }
 
 impl OpeningCommandAutocomplete {
     pub async fn run(self, info: ClusterData, interaction: &Interaction) -> Result<()> {
-        let vec = if let AutocompleteValue::Focused(input) = &self.query {
+        let vec = if let AutocompleteValue::Focused(input) = &self.theme {
             let res = search_theme(input, 25, info.pool).await?;
             res.iter()
                 .map(|s| CommandOptionChoice::String {
@@ -61,12 +61,12 @@ impl OpeningCommandAutocomplete {
 
 impl OpeningCommand<'_> {
     pub async fn run(self, info: ClusterData, interaction: &Interaction) -> Result<()> {
-        let theme_id = if self.query.starts_with('\0') {
-            self.query[1..]
+        let theme_id = if self.theme.starts_with('\0') {
+            self.theme[1..]
                 .parse::<u64>()
                 .expect("not a number after null character")
         } else {
-            let possible = search_theme(&self.query, 1, info.pool.clone()).await?;
+            let possible = search_theme(&self.theme, 1, info.pool.clone()).await?;
             if let Some(theme) = possible.get(0) {
                 theme.theme_id
             } else {
