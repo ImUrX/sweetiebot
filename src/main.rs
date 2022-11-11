@@ -32,12 +32,25 @@ async fn update_commands(info: ClusterData) -> Result<(usize, usize)> {
     let client = info.http.interaction(info.application_id);
     let globals = client.global_commands().exec().await?.model().await?;
     let mut deleted = 0;
-    for global in globals.iter().filter(|x| interaction::CREATE_COMMANDS.iter().position(|y| y.name == x.name).is_none()) {
+    for global in globals.iter().filter(|x| {
+        interaction::CREATE_COMMANDS
+            .iter()
+            .position(|y| y.name == x.name)
+            .is_none()
+    }) {
         deleted += 1;
-        client.delete_global_command(global.id.unwrap()).exec().await?;
+        client
+            .delete_global_command(global.id.unwrap())
+            .exec()
+            .await?;
     }
 
-    let list = client.set_global_commands(&interaction::CREATE_COMMANDS).exec().await?.model().await?;
+    let list = client
+        .set_global_commands(&interaction::CREATE_COMMANDS)
+        .exec()
+        .await?
+        .model()
+        .await?;
     Ok((list.len(), deleted))
 }
 
@@ -139,7 +152,7 @@ async fn main() -> Result<()> {
         bonsai,
         scheduler,
     };
-    
+
     {
         let (updated, deleted) = update_commands(info.clone()).await?;
         println!("Updated {updated} commands and deleted {deleted} commands.");
@@ -172,8 +185,8 @@ async fn handle_event(shard_id: u64, event: Event, info: ClusterData) -> Result<
             let handler = handle_interaction(shard_id, interaction.clone(), info.clone()).await;
             if let Err(err) = handler {
                 eprintln!(
-                    "Error found on interaction {:?}\nError: {:?}",
-                    interaction, err
+                    "Error found on interaction {}\nError: {:?}",
+                    interaction.id, err
                 );
             }
         }
