@@ -106,7 +106,15 @@ pub async fn handle_interaction(
                                 .await?;
                         }
                     }
-                    return command;
+                    println!(
+                        "ID: {} <#{}> by <@{}>: /{} {:?}",
+                        interaction.0.id,
+                        interaction.0.channel_id.unwrap(),
+                        interaction.0.author_id().unwrap(),
+                        cmd.name,
+                        cmd.options
+                    );
+                    command?
                 }
                 InteractionType::ApplicationCommandAutocomplete => {
                     match cmd.name.as_str() {
