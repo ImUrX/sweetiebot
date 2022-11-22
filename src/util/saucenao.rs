@@ -248,6 +248,7 @@ impl<'de> Deserialize<'de> for Res {
                 SauceFurryNetworkData::deserialize(data).map_err(D::Error::custom)?,
             ),
             43 => ResData::Kemono(SauceKemonoData::deserialize(data).map_err(D::Error::custom)?),
+            44 => ResData::Skeb(SauceSkebData::deserialize(data).map_err(D::Error::custom)?),
             _ => return Err(D::Error::unknown_variant(&header.index_name, &[])),
         };
         Ok(Res { header, data })
