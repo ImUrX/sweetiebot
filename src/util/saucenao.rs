@@ -161,6 +161,9 @@ pub async fn build_embed(
             ResData::Artstation(artstation) => embed
                 .title(artstation.title)
                 .author(EmbedAuthorBuilder::new(artstation.author_name).url(artstation.author_url)),
+            ResData::Skeb(skeb) => embed
+                .title("Artwork request")
+                .author(EmbedAuthorBuilder::new(skeb.creator).url(skeb.author_url)),
         };
 
     Ok((embed, attachment))
@@ -273,6 +276,7 @@ pub enum ResData {
     Twitter(SauceTwitterData),
     FurryNetwork(SauceFurryNetworkData),
     Kemono(SauceKemonoData),
+    Skeb(SauceSkebData),
 }
 
 impl ResData {
@@ -298,6 +302,7 @@ impl ResData {
             Self::Twitter(data) => Some(&data.ext_urls),
             Self::FurryNetwork(data) => Some(&data.ext_urls),
             Self::Kemono(data) => Some(&data.ext_urls),
+            Self::Skeb(data) => Some(&data.ext_urls),
         }
     }
 }
@@ -516,4 +521,14 @@ pub struct SauceKemonoData {
     pub id: String,
     pub user_id: String,
     pub user_name: String,
+}
+
+#[derive(Debug, Deserialize, Clone)]
+pub struct SauceSkebData {
+    pub ext_urls: Vec<String>,
+    pub path: String,
+    pub creator: String,
+    pub creator_name: String,
+    pub author_name: String,
+    pub author_url: String,
 }
