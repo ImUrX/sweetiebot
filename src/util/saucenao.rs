@@ -530,6 +530,6 @@ pub struct SauceSkebData {
     pub path: String,
     pub creator: String,
     pub creator_name: String,
-    pub author_name: String,
+    pub author_name: Option<String>,
     pub author_url: String,
 }
