@@ -5,7 +5,7 @@ use rand::{seq::SliceRandom, thread_rng};
 use twilight_interactions::command::{AutocompleteValue, CommandModel, CreateCommand};
 use twilight_model::{
     application::{command::CommandOptionChoice, interaction::Interaction},
-    http::interaction::{InteractionResponse, InteractionResponseType},
+    http::interaction::{InteractionResponse, InteractionResponseType}, channel::message::MessageFlags,
 };
 use twilight_util::builder::InteractionResponseDataBuilder;
 
@@ -78,6 +78,7 @@ impl OpeningCommand<'_> {
                                 "Couldn't find the anime theme {}\nHint: Use the suggestions that pop up while you write so you can search the precise theme you are searching for.",
                                 SAD_EMOJIS.choose(&mut thread_rng()).unwrap()
                             ))
+                            .flags(MessageFlags::EPHEMERAL)
                             .build(),
                     ),
                 };
@@ -93,6 +94,29 @@ impl OpeningCommand<'_> {
         };
 
         let videos = get_video(theme_id, info.pool).await?;
+        if videos.len() == 0 {
+            let response = InteractionResponse {
+                kind: InteractionResponseType::ChannelMessageWithSource,
+                data: Some(
+                    InteractionResponseDataBuilder::new()
+                        .content(format!(
+                            "This theme is yet to be uploaded. {}",
+                            SAD_EMOJIS.choose(&mut thread_rng()).unwrap()
+                        ))
+                        .flags(MessageFlags::EPHEMERAL)
+                        .build(),
+                ),
+            };
+
+            info.http
+                .interaction(interaction.application_id)
+                .create_response(interaction.id, &interaction.token, &response)
+                .exec()
+                .await?;
+
+            return Ok(());
+        }
+
         let mut prelude = "".to_string();
         if let Some(title) = &videos[0].title {
             prelude += &format!("**{title}**");
