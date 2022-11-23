@@ -30,7 +30,7 @@ use util::animethemes;
 
 async fn update_commands(info: ClusterData) -> Result<(usize, usize)> {
     let client = info.http.interaction(info.application_id);
-    let globals = client.global_commands().exec().await?.model().await?;
+    let globals = client.global_commands().await?.model().await?;
     let mut deleted = 0;
     for global in globals.iter().filter(|x| {
         interaction::CREATE_COMMANDS
@@ -38,15 +38,11 @@ async fn update_commands(info: ClusterData) -> Result<(usize, usize)> {
             .any(|y| y.name == x.name)
     }) {
         deleted += 1;
-        client
-            .delete_global_command(global.id.unwrap())
-            .exec()
-            .await?;
+        client.delete_global_command(global.id.unwrap()).await?;
     }
 
     let list = client
         .set_global_commands(&interaction::CREATE_COMMANDS)
-        .exec()
         .await?
         .model()
         .await?;
@@ -127,11 +123,11 @@ async fn main() -> Result<()> {
     let standby = Arc::new(Standby::new());
 
     let application_id = {
-        let response = http.current_user_application().exec().await?;
+        let response = http.current_user_application().await?;
         response.model().await?.id
     };
     let bot_id = {
-        let response = http.current_user().exec().await?;
+        let response = http.current_user().await?;
         response.model().await?.id
     };
 
@@ -178,7 +174,6 @@ async fn handle_event(shard_id: u64, event: Event, info: ClusterData) -> Result<
             info.http
                 .create_message(msg.channel_id)
                 .content("Pong!")?
-                .exec()
                 .await?;
         }
         Event::InteractionCreate(interaction) => {
@@ -222,7 +217,7 @@ impl ClusterData {
         if let Some(channel) = self.cache.channel(channel_id) {
             Ok(channel.nsfw.unwrap_or(false))
         } else {
-            let channel = ChannelUpdate(self.http.channel(channel_id).exec().await?.model().await?);
+            let channel = ChannelUpdate(self.http.channel(channel_id).await?.model().await?);
             self.cache.update(&channel);
             Ok(channel.0.nsfw.unwrap_or(false))
         }

@@ -4,8 +4,12 @@ use anyhow::Result;
 use rand::{seq::SliceRandom, thread_rng};
 use twilight_interactions::command::{AutocompleteValue, CommandModel, CreateCommand};
 use twilight_model::{
-    application::{command::CommandOptionChoice, interaction::Interaction},
-    http::interaction::{InteractionResponse, InteractionResponseType}, channel::message::MessageFlags,
+    application::{
+        command::{CommandOptionChoice, CommandOptionChoiceData},
+        interaction::Interaction,
+    },
+    channel::message::MessageFlags,
+    http::interaction::{InteractionResponse, InteractionResponseType},
 };
 use twilight_util::builder::InteractionResponseDataBuilder;
 
@@ -35,10 +39,12 @@ impl OpeningCommandAutocomplete {
         let vec = if let AutocompleteValue::Focused(input) = &self.theme {
             let res = search_theme(input, 25, info.pool).await?;
             res.iter()
-                .map(|s| CommandOptionChoice::String {
-                    name: format!("{} {}", s.name, s.slug),
-                    name_localizations: None,
-                    value: format!("\0{}", s.theme_id),
+                .map(|s| {
+                    CommandOptionChoice::String(CommandOptionChoiceData {
+                        name: format!("{} {}", s.name, s.slug),
+                        name_localizations: None,
+                        value: format!("\0{}", s.theme_id),
+                    })
                 })
                 .collect()
         } else {
@@ -52,7 +58,6 @@ impl OpeningCommandAutocomplete {
         info.http
             .interaction(info.application_id)
             .create_response(interaction.id, &interaction.token, &response)
-            .exec()
             .await?;
 
         Ok(())
@@ -86,7 +91,6 @@ impl OpeningCommand<'_> {
                 info.http
                     .interaction(interaction.application_id)
                     .create_response(interaction.id, &interaction.token, &response)
-                    .exec()
                     .await?;
 
                 return Ok(());
@@ -111,7 +115,6 @@ impl OpeningCommand<'_> {
             info.http
                 .interaction(interaction.application_id)
                 .create_response(interaction.id, &interaction.token, &response)
-                .exec()
                 .await?;
 
             return Ok(());
@@ -140,7 +143,6 @@ impl OpeningCommand<'_> {
         info.http
             .interaction(interaction.application_id)
             .create_response(interaction.id, &interaction.token, &response)
-            .exec()
             .await?;
         Ok(())
     }

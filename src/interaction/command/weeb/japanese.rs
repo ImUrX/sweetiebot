@@ -10,8 +10,11 @@ use skia_safe::{
 };
 use twilight_interactions::command::{AutocompleteValue, CommandModel, CreateCommand};
 use twilight_model::{
-    application::{command::CommandOptionChoice, interaction::Interaction},
-    channel::embed::EmbedField,
+    application::{
+        command::{CommandOptionChoice, CommandOptionChoiceData},
+        interaction::Interaction,
+    },
+    channel::message::embed::EmbedField,
     http::{
         attachment::Attachment,
         interaction::{InteractionResponse, InteractionResponseType},
@@ -51,24 +54,24 @@ impl JishoCommandAutocomplete {
         let mut vec = Vec::new();
         if let AutocompleteValue::Focused(input) = &self.word {
             if input.is_empty() {
-                vec.push(CommandOptionChoice::String {
+                vec.push(CommandOptionChoice::String(CommandOptionChoiceData {
                     name: "例え".to_string(),
                     name_localizations: None,
                     value: "例え".to_string(),
-                });
+                }));
             } else {
-                vec.push(CommandOptionChoice::String {
+                vec.push(CommandOptionChoice::String(CommandOptionChoiceData {
                     name: input.clone(),
                     name_localizations: None,
                     value: input.clone(),
-                });
+                }));
                 if is_hiragana(&to_hiragana(input)) {
                     let quoted = format!("\"{}\"", input);
-                    vec.push(CommandOptionChoice::String {
+                    vec.push(CommandOptionChoice::String(CommandOptionChoiceData {
                         name: quoted.clone(),
                         name_localizations: None,
                         value: quoted,
-                    });
+                    }));
                 }
             }
         }
@@ -79,7 +82,6 @@ impl JishoCommandAutocomplete {
         info.http
             .interaction(info.application_id)
             .create_response(interaction.id, &interaction.token, &response)
-            .exec()
             .await?;
 
         Ok(())
@@ -91,7 +93,6 @@ impl JishoCommand<'_> {
         info.http
             .interaction(interaction.application_id)
             .create_response(interaction.id, &interaction.token, &DEFERRED_RESPONSE)
-            .exec()
             .await?;
 
         let res = jisho_words(&self.word).await?;

@@ -1,7 +1,7 @@
 use anyhow::Result;
 use serde::Deserialize;
 use twilight_model::{
-    channel::{embed::EmbedField, Attachment},
+    channel::{message::embed::EmbedField, Attachment},
     http::attachment::Attachment as HttpAttachment,
 };
 use twilight_util::builder::embed::{EmbedBuilder, ImageSource};

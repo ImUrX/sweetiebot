@@ -3,7 +3,7 @@ use std::env;
 use serde::de::{Deserializer, Error};
 use serde::Deserialize;
 use serde_json::Value;
-use twilight_model::channel::embed::EmbedFooter;
+use twilight_model::channel::message::embed::EmbedFooter;
 use twilight_model::util::Timestamp;
 use twilight_model::{channel::Attachment, http::attachment::Attachment as HttpAttachment};
 use twilight_util::builder::embed::{

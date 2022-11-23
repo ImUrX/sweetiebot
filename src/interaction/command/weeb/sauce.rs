@@ -40,7 +40,6 @@ impl SauceTraceMoe {
         info.http
             .interaction(interaction.application_id)
             .create_response(interaction.id, &interaction.token, &DEFERRED_RESPONSE)
-            .exec()
             .await?;
 
         let res = fetch_tracemoe(&self.image).await?;
@@ -67,7 +66,6 @@ impl SauceSauceNAO {
         info.http
             .interaction(interaction.application_id)
             .create_response(interaction.id, &interaction.token, &DEFERRED_RESPONSE)
-            .exec()
             .await?;
 
         let res = fetch_saucenao(&self.image).await?;

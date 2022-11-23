@@ -22,11 +22,11 @@ use substring::Substring;
 use tokio::{task, time::timeout};
 use twilight_http::Client as HttpClient;
 use twilight_model::{
-    application::{
-        component::{button::ButtonStyle, ActionRow, Button, Component},
-        interaction::{Interaction, InteractionData},
+    application::interaction::{Interaction, InteractionData},
+    channel::message::{
+        component::{ActionRow, Button, ButtonStyle, Component},
+        embed::Embed,
     },
-    channel::embed::Embed,
     http::{
         attachment::Attachment,
         interaction::{InteractionResponse, InteractionResponseType},
@@ -229,7 +229,6 @@ impl EmbedList {
                 .create_followup(&interaction.token)
                 .embeds(&self.embeds)?
                 .attachments(&attachments)?
-                .exec()
                 .await?;
             return Ok(());
         }
@@ -240,14 +239,12 @@ impl EmbedList {
             .embeds(&[self.embeds[0].clone()])?
             .attachments(&attachments)?
             .components(&[Component::ActionRow(Self::generate_row(true, false))])?
-            .exec()
             .await?;
 
         let message_id = self
             .http
             .interaction(self.application_id)
             .response(&interaction.token)
-            .exec()
             .await?
             .model()
             .await?
@@ -279,7 +276,6 @@ impl EmbedList {
                                 &component.token,
                                 &DEFERRED_COMPONENT_RESPONSE,
                             )
-                            .exec()
                             .await?;
                         let index = match &*data.custom_id {
                             // we are not parallelizing the stream, so the arc should only be touched once per time so no deadlocks
@@ -314,7 +310,6 @@ impl EmbedList {
                             .embeds(Some(embeds))?
                             .attachments(&attachments)?
                             .components(Some(&action_row))?
-                            .exec()
                             .await?;
                     }
                     Ok(())
@@ -329,7 +324,6 @@ impl EmbedList {
                     .interaction(self.application_id)
                     .update_response(&interaction.token)
                     .components(Some(&[]))?
-                    .exec()
                     .await?;
                 Ok(())
             }
@@ -356,7 +350,7 @@ impl EmbedList {
                 data: Some(builder.build()),
             };
             let create = client.create_response(interaction.id, &interaction.token, &response);
-            create.exec().await?;
+            create.await?;
             return Ok(());
         }
 
@@ -373,14 +367,12 @@ impl EmbedList {
         self.http
             .interaction(self.application_id)
             .create_response(interaction.id, &interaction.token, &response)
-            .exec()
             .await?;
 
         let message_id = self
             .http
             .interaction(self.application_id)
             .response(&interaction.token)
-            .exec()
             .await?
             .model()
             .await?
@@ -412,7 +404,6 @@ impl EmbedList {
                                 &component.token,
                                 &DEFERRED_COMPONENT_RESPONSE,
                             )
-                            .exec()
                             .await?;
                         let index = match &*data.custom_id {
                             // we are not parallelizing the stream, so the arc should only be touched once per time so no deadlocks
@@ -447,7 +438,6 @@ impl EmbedList {
                             .embeds(Some(embeds))?
                             .attachments(&attachments)?
                             .components(Some(&action_row))?
-                            .exec()
                             .await?;
                     }
                     Ok(())
@@ -462,7 +452,6 @@ impl EmbedList {
                     .interaction(self.application_id)
                     .update_response(&interaction.token)
                     .components(Some(&[]))?
-                    .exec()
                     .await?;
                 Ok(())
             }

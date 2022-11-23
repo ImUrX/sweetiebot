@@ -90,7 +90,6 @@ pub async fn handle_interaction(
                                     ),
                                 },
                             )
-                            .exec()
                             .await
                             .is_err();
 
@@ -102,7 +101,6 @@ pub async fn handle_interaction(
                                 .components(Some(&[]))?
                                 .embeds(Some(&[]))?
                                 .content(Some(&err_string))?
-                                .exec()
                                 .await?;
                         }
                     }

@@ -7,36 +7,36 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-twilight-model = "0.13"
-twilight-http = { default-features = false, version = "0.13", features = ["native", "simd-json"] }
-twilight-gateway = { default-features = false, version = "0.13", features = ["native", "simd-json"] }
-twilight-cache-inmemory = "0.13"
-twilight-standby = "0.13"
-twilight-util = { version = "0.13", features = ["builder"]}
-twilight-mention = "0.13"
-twilight-interactions = "0.13"
-twilight-validate = "0.13"
+twilight-model = "0.14"
+twilight-http = { default-features = false, version = "0.14", features = ["native", "simd-json"] }
+twilight-gateway = { default-features = false, version = "0.14", features = ["native", "simd-json"] }
+twilight-cache-inmemory = "0.14"
+twilight-standby = "0.14"
+twilight-util = { version = "0.14", features = ["builder"]}
+twilight-mention = "0.14"
+twilight-interactions = "0.14"
+twilight-validate = "0.14"
 futures = "0.3"
-tokio = { version = "1.20", features = ["full"] }
-tokio-stream = "0.1.9"
-tokio-util = "0.7.4"
+tokio = { version = "1.22", features = ["full"] }
+tokio-stream = "0.1"
+tokio-util = "0.7"
 dotenvy = "0.15"
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
-smallvec = "1.9"
+smallvec = "1.10"
 anyhow = "1.0"
 reqwest = { version = "0.11", features = ["json", "brotli", "multipart", "stream"] }
 scraper = "0.13"
 urlencoding = "2.1"
 skia-safe = { version = "0", features = ["textlayout"] }
-image = "0.24.3"
-wana_kana = "2.0"
-include_dir = "0.7.2"
-lazy_static = "1.4.0"
-itertools = "0.10.3"
+image = "0.24"
+wana_kana = "2.1.0"
+include_dir = "0.7"
+lazy_static = "1.4"
+itertools = "0.10.5"
 bytes = "1"
 regex = "1"
-substring = "1.4.5"
+substring = "1.4"
 sqlx = { version = "0.6", features = ["runtime-tokio-native-tls", "mysql", "macros", "migrate", "time", "tls"] }
 html-escape = "0.2"
 tokio-cron-scheduler = "*"
