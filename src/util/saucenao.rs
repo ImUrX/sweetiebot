@@ -300,7 +300,7 @@ pub enum ResData {
 impl ResData {
     pub fn get_ext_urls(&'_ self) -> Option<&'_ [String]> {
         match self {
-            Self::HMagazines(data) => Some(&data.ext_urls),
+            Self::HMagazines(data) => None,
             Self::Pixiv(data) => Some(&data.ext_urls),
             Self::NicoNico(data) => Some(&data.ext_urls),
             Self::Danbooru(data) => Some(&data.ext_urls),
@@ -328,7 +328,6 @@ impl ResData {
 
 #[derive(Debug, Deserialize, Clone)]
 pub struct SauceHMagazinesData {
-    pub ext_urls: Vec<String>,
     pub title: String,
     pub part: String,
     pub date: String,

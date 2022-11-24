@@ -27,22 +27,27 @@ op-message-prelude = **{ $title }** {$artist ->
 ## Sauce command
 sauce = sauce
     .desc = Searches the image's original source
-sauce-saucenao = saucenao
-    .desc = Searches the image's source with SauceNAO
 sauce-options-image = image
     .desc = Image to reverse-lookup for
+sauce-nsfw = **WARNING**: Image is NSFW so it's been censored!
+
+
+## Sauce trace.moe command
 sauce-tracemoe = tracemoe
     .desc = Searches the image's source with trace.moe
-sauce-nsfw = **WARNING**: Image is NSFW so it's been censored!
 sauce-tracemoe-similarity = Similarity:
     .value = { NUMBER($amount, maximumFractionDigits: 2, style: "percent") }
 sauce-tracemoe-timestamp = Timestamp:
     .value = Episode { $num } at { $timestamp }
+
+## Sauce saucenao command
+sauce-saucenao = saucenao
+    .desc = Searches the image's source with SauceNAO
 sauce-saucenao-similarity = Similarity { NUMBER($amount, maximumFractionDigits: 2, style: "percent") }
 sauce-saucenao-part = Part:
     .value = { $num }
 sauce-saucenao-timestamp = Timestamp:
-    .value = { $timestamp } / { $length }
+    .value = { $timestamp }/{ $length }
 sauce-saucenao-tweet = Tweet by { $user-handle }
 sauce-saucenao-toot = Toot by { $pawoo-user }
 sauce-saucenao-mangadex-authors = { $author }{$artist ->
