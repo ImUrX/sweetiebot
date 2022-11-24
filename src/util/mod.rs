@@ -38,6 +38,7 @@ use twilight_standby::Standby;
 use twilight_util::builder::InteractionResponseDataBuilder;
 
 pub mod animethemes;
+pub mod i18n;
 pub mod saucenao;
 pub mod tracemoe;
 pub mod yandex;

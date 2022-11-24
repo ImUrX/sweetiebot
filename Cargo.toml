@@ -47,6 +47,8 @@ bonsaidb = { version = "0.4", features = ["local-full"] }
 once_cell = "1.16.0"
 sentry = { version = "0.29.0", features = ["anyhow"] }
 fluent-bundle = "0.15"
+unic-langid = { version = "0.9.1", features = ["macros"] }
+intl-memoizer = "0.5.1"
 
 [profile.dev.package.sqlx-macros]
 opt-level = 3
