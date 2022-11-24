@@ -1,5 +1,6 @@
 use std::env;
 
+use sentry::{add_breadcrumb, Breadcrumb, Level};
 use serde::de::{Deserializer, Error};
 use serde::Deserialize;
 use serde_json::Value;
@@ -14,6 +15,15 @@ use super::{censor_image, get_bytes, shortify};
 
 pub async fn fetch(attachment: &Attachment) -> anyhow::Result<Data> {
     let client = reqwest::Client::new();
+    add_breadcrumb(Breadcrumb {
+        category: Some("saucenao".into()),
+        message: Some(format!(
+            "Searching in saucenao about {} ",
+            attachment.proxy_url.clone()
+        )),
+        level: Level::Info,
+        ..Default::default()
+    });
     let res = client
         .get("https://saucenao.com/search.php?db=999&output_type=2&numres=5&hide=3")
         .query(&[
