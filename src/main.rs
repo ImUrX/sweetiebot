@@ -1,6 +1,7 @@
 #![feature(get_mut_unchecked, try_blocks, exit_status_error)]
 mod interaction;
 pub mod util;
+
 use anyhow::Result;
 use bonsaidb::local::{
     config::{Builder, StorageConfiguration},

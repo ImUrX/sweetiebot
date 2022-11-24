@@ -164,6 +164,9 @@ pub async fn build_embed(
             ResData::Skeb(skeb) => embed
                 .title("Artwork request")
                 .author(EmbedAuthorBuilder::new(skeb.creator).url(skeb.author_url)),
+            ResData::HMagazines(hmag) => embed
+                .title(hmag.title)
+                .field(EmbedFieldBuilder::new("Part:", hmag.part)),
         };
 
     Ok((embed, attachment))
@@ -212,6 +215,9 @@ impl<'de> Deserialize<'de> for Res {
             .get("data")
             .ok_or_else(|| D::Error::missing_field("data"))?;
         let data = match header.index_id {
+            0 => ResData::HMagazines(
+                SauceHMagazinesData::deserialize(data).map_err(D::Error::custom)?,
+            ),
             5 | 6 => ResData::Pixiv(SaucePixivData::deserialize(data).map_err(D::Error::custom)?),
             8 => ResData::NicoNico(SauceNicoNicoData::deserialize(data).map_err(D::Error::custom)?),
             9 => ResData::Danbooru(SauceDanbooruData::deserialize(data).map_err(D::Error::custom)?),
@@ -257,6 +263,7 @@ impl<'de> Deserialize<'de> for Res {
 
 #[derive(Debug, Clone)]
 pub enum ResData {
+    HMagazines(SauceHMagazinesData),
     Pixiv(SaucePixivData),
     NicoNico(SauceNicoNicoData),
     Danbooru(SauceDanbooruData),
@@ -283,6 +290,7 @@ pub enum ResData {
 impl ResData {
     pub fn get_ext_urls(&'_ self) -> Option<&'_ [String]> {
         match self {
+            Self::HMagazines(data) => Some(&data.ext_urls),
             Self::Pixiv(data) => Some(&data.ext_urls),
             Self::NicoNico(data) => Some(&data.ext_urls),
             Self::Danbooru(data) => Some(&data.ext_urls),
@@ -306,6 +314,14 @@ impl ResData {
             Self::Skeb(data) => Some(&data.ext_urls),
         }
     }
+}
+
+#[derive(Debug, Deserialize, Clone)]
+pub struct SauceHMagazinesData {
+    pub ext_urls: Vec<String>,
+    pub title: String,
+    pub part: String,
+    pub date: String,
 }
 
 #[derive(Debug, Deserialize, Clone)]
