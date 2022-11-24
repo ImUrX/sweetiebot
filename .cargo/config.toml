@@ -1,2 +1,5 @@
 [build]
 rustflags = ["--cfg", "sqlx_macros_unstable", "-C", "target-cpu=native"]
+
+[env]
+RUST_BACKTRACE="full"

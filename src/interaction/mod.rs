@@ -2,6 +2,7 @@ use anyhow::{bail, Result};
 
 use once_cell::sync::Lazy;
 use rand::{seq::SliceRandom, thread_rng};
+use sentry::integrations::anyhow::capture_anyhow;
 use twilight_interactions::command::{CommandModel, CreateCommand};
 use twilight_model::{
     application::{
@@ -70,6 +71,7 @@ pub async fn handle_interaction(
                     };
 
                     if let Err(e) = &command {
+                        capture_anyhow(&e);
                         let err_string = format!(
                             "An error occurred {}\n```\n{}\n```",
                             SAD_EMOJIS.choose(&mut thread_rng()).unwrap(),
@@ -104,6 +106,7 @@ pub async fn handle_interaction(
                                 .await?;
                         }
                     }
+
                     println!(
                         "ID: {} <#{}> by <@{}>: /{} {:?}",
                         interaction.0.id,

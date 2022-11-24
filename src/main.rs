@@ -8,6 +8,7 @@ use bonsaidb::local::{
 };
 use futures::stream::StreamExt;
 use interaction::handle_interaction;
+use sentry::integrations::anyhow::capture_anyhow;
 use sqlx::{mysql::MySqlPoolOptions, MySql, Pool};
 use std::{env, sync::Arc};
 use tokio_cron_scheduler::{Job, JobScheduler};
@@ -35,7 +36,7 @@ async fn update_commands(info: ClusterData) -> Result<(usize, usize)> {
     for global in globals.iter().filter(|x| {
         interaction::CREATE_COMMANDS
             .iter()
-            .any(|y| y.name == x.name)
+            .any(|y| y.name != x.name)
     }) {
         deleted += 1;
         client.delete_global_command(global.id.unwrap()).await?;
@@ -60,6 +61,14 @@ async fn main() -> Result<()> {
         .max_connections(20)
         .connect(&env::var("DATABASE_URL")?)
         .await?;
+
+    let options = sentry::ClientOptions {
+        dsn: env::var("SENTRY_DSN").ok().map(|dsn| dsn.parse().unwrap()),
+        release: sentry::release_name!(),
+        ..Default::default()
+    };
+    let _guard = sentry::init(options);
+
     let scheduler = JobScheduler::new().await?;
     {
         let bonsai = bonsai.clone();
@@ -179,6 +188,7 @@ async fn handle_event(shard_id: u64, event: Event, info: ClusterData) -> Result<
         Event::InteractionCreate(interaction) => {
             let handler = handle_interaction(shard_id, interaction.clone(), info.clone()).await;
             if let Err(err) = handler {
+                capture_anyhow(&err);
                 eprintln!(
                     "Error found on interaction {}\nError: {:?}",
                     interaction.id, err

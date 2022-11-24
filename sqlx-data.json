@@ -1,0 +1,131 @@
+{
+  "db": "MySQL",
+  "9b458353c83cabe58ce6172142640f83ed2f36a8cbc7cccac3989e70b159689b": {
+    "describe": {
+      "columns": [
+        {
+          "name": "theme_id",
+          "ordinal": 0,
+          "type_info": {
+            "char_set": 63,
+            "flags": {
+              "bits": 547
+            },
+            "max_size": 20,
+            "type": "LongLong"
+          }
+        },
+        {
+          "name": "name",
+          "ordinal": 1,
+          "type_info": {
+            "char_set": 224,
+            "flags": {
+              "bits": 4097
+            },
+            "max_size": 1020,
+            "type": "VarString"
+          }
+        },
+        {
+          "name": "slug",
+          "ordinal": 2,
+          "type_info": {
+            "char_set": 224,
+            "flags": {
+              "bits": 4097
+            },
+            "max_size": 1020,
+            "type": "VarString"
+          }
+        },
+        {
+          "name": "title",
+          "ordinal": 3,
+          "type_info": {
+            "char_set": 224,
+            "flags": {
+              "bits": 0
+            },
+            "max_size": 1020,
+            "type": "VarString"
+          }
+        }
+      ],
+      "nullable": [
+        false,
+        false,
+        false,
+        true
+      ],
+      "parameters": {
+        "Right": 5
+      }
+    },
+    "query": "\nSELECT theme_id, anime.name as name, anime_themes.slug as slug, songs.title as title\nFROM anime_themes\nINNER JOIN anime\nON anime.anime_id = anime_themes.anime_id\nLEFT JOIN anime_synonyms\nON anime_synonyms.anime_id = anime.anime_id\nLEFT JOIN songs\nON songs.song_id = anime_themes.song_id\nWHERE (anime.name LIKE CONCAT(\"%\", ?, \"%\")\nOR songs.title LIKE CONCAT(\"%\", ?, \"%\")\nOR anime_synonyms.text LIKE CONCAT(\"%\", ?, \"%\"))\nAND anime_themes.slug LIKE CONCAT(\"%\", ?, \"%\")\nGROUP BY theme_id\nLIMIT ?\n        "
+  },
+  "f2f1d686979efe478ef73a36dbc83453167e9fa375e94675cea3e3b0f09f6e5f": {
+    "describe": {
+      "columns": [
+        {
+          "name": "title",
+          "ordinal": 0,
+          "type_info": {
+            "char_set": 224,
+            "flags": {
+              "bits": 0
+            },
+            "max_size": 1020,
+            "type": "VarString"
+          }
+        },
+        {
+          "name": "basename",
+          "ordinal": 1,
+          "type_info": {
+            "char_set": 224,
+            "flags": {
+              "bits": 4097
+            },
+            "max_size": 1020,
+            "type": "VarString"
+          }
+        },
+        {
+          "name": "artist_name",
+          "ordinal": 2,
+          "type_info": {
+            "char_set": 224,
+            "flags": {
+              "bits": 4096
+            },
+            "max_size": 1020,
+            "type": "VarString"
+          }
+        },
+        {
+          "name": "as_who",
+          "ordinal": 3,
+          "type_info": {
+            "char_set": 224,
+            "flags": {
+              "bits": 0
+            },
+            "max_size": 1020,
+            "type": "VarString"
+          }
+        }
+      ],
+      "nullable": [
+        true,
+        false,
+        true,
+        true
+      ],
+      "parameters": {
+        "Right": 1
+      }
+    },
+    "query": "\nSELECT songs.title as title, videos.basename as basename,\n    artists.name as artist_name, artist_song.as as as_who\nFROM anime_theme_entries\nINNER JOIN anime_themes\nON anime_theme_entries.theme_id = anime_themes.theme_id\nINNER JOIN anime_theme_entry_video\nON anime_theme_entry_video.entry_id = anime_theme_entries.entry_id\nINNER JOIN videos\nON anime_theme_entry_video.video_id = videos.video_id\nLEFT JOIN songs\nON songs.song_id = anime_themes.song_id\nLEFT JOIN artist_song\nON songs.song_id = artist_song.song_id\nLEFT JOIN artists\nON artists.artist_id = artist_song.artist_id\nWHERE anime_theme_entries.theme_id = ?\n    "
+  }
+}
