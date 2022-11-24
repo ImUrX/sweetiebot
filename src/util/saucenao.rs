@@ -300,7 +300,7 @@ pub enum ResData {
 impl ResData {
     pub fn get_ext_urls(&'_ self) -> Option<&'_ [String]> {
         match self {
-            Self::HMagazines(data) => None,
+            Self::HMagazines(_) => None,
             Self::Pixiv(data) => Some(&data.ext_urls),
             Self::NicoNico(data) => Some(&data.ext_urls),
             Self::Danbooru(data) => Some(&data.ext_urls),
