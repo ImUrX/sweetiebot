@@ -9,7 +9,6 @@ use bonsaidb::local::{
 };
 use futures::stream::StreamExt;
 use interaction::handle_interaction;
-use itertools::Itertools;
 use sentry::integrations::anyhow::capture_anyhow;
 use sqlx::{mysql::MySqlPoolOptions, MySql, Pool};
 use std::{env, sync::Arc};

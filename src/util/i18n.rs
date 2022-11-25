@@ -2,7 +2,6 @@ use std::{borrow::Cow, collections::HashMap};
 
 use fluent_bundle::{bundle::FluentBundle, FluentResource};
 use intl_memoizer::concurrent::IntlLangMemoizer;
-use itertools::Itertools;
 use lazy_static::lazy_static;
 use phf::phf_map;
 use unic_langid::{langid, LanguageIdentifier};
@@ -16,14 +15,6 @@ lazy_static! {
     pub static ref LANG_MAP: HashMap<LanguageIdentifier, FluentBundle<FluentResource, IntlLangMemoizer>> = {
         let mut map = HashMap::new();
         for (lang_name, lang_id) in AVAILABLE_LANGS.entries() {
-            println!(
-                "{:?}",
-                super::ASSETS_DIR
-                    .get_dir("langs")
-                    .unwrap()
-                    .files()
-                    .collect_vec()
-            );
             let file = super::ASSETS_DIR
                 .get_file(format!("langs/{}.ftl", lang_name))
                 .expect("Couldn't find one of the lang files")
