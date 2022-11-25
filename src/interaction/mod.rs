@@ -15,7 +15,7 @@ use twilight_model::{
 };
 use twilight_util::builder::InteractionResponseDataBuilder;
 
-use crate::{util::SAD_EMOJIS, ClusterData};
+use crate::{interaction::command::creativity::draw::DrawCommand, util::SAD_EMOJIS, ClusterData};
 
 use self::command::weeb::{
     japanese::{JishoCommand, JishoCommandAutocomplete},
@@ -27,6 +27,7 @@ pub mod command;
 
 pub static CREATE_COMMANDS: Lazy<Vec<Command>> = Lazy::new(|| {
     vec![
+        DrawCommand::create_command().into(),
         JishoCommand::create_command().into(),
         OpeningCommand::create_command().into(),
         SauceCommand::create_command().into(),
@@ -65,6 +66,11 @@ pub async fn handle_interaction(
                                         trace.run(info, &interaction.0).await?
                                     }
                                 }
+                            }
+                            "draw" => {
+                                DrawCommand::from_interaction((**cmd).clone().into())?
+                                    .run(info, &interaction.0)
+                                    .await?
                             }
                             _ => bail!("Unknown command interaction {}", cmd.name),
                         };

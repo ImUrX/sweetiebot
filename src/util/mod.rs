@@ -40,6 +40,7 @@ use twilight_util::builder::InteractionResponseDataBuilder;
 pub mod animethemes;
 pub mod i18n;
 pub mod saucenao;
+pub mod stablediffusion;
 pub mod tracemoe;
 pub mod yandex;
 
