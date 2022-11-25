@@ -56,8 +56,8 @@ impl DrawCommand<'_> {
                 &mut Cursor::new(&mut new_bytes),
                 image::ImageOutputFormat::Png,
             )?;
-            let attachment = Attachment::from_bytes("prompt.png".to_string(), new_bytes, 0);
 
+            let attachment = Attachment::from_bytes("prompt.png".to_string(), new_bytes, 0);
             info.http
                 .interaction(interaction.application_id)
                 .update_response(&interaction.token)
