@@ -184,7 +184,7 @@ pub async fn build_embed(
 
 #[derive(Debug, Deserialize, Clone)]
 pub struct DataHeader {
-    pub status: u32,
+    pub status: i32,
 }
 
 #[derive(Debug, Deserialize, Clone)]
