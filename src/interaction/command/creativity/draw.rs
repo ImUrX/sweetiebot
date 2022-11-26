@@ -2,7 +2,11 @@ use std::borrow::Cow;
 use std::io::Cursor;
 
 use anyhow::Result;
-use image::{io::Reader as ImageReader, RgbaImage, imageops::{thumbnail, replace}};
+use image::{
+    imageops::{replace, thumbnail},
+    io::Reader as ImageReader,
+    RgbaImage,
+};
 use twilight_interactions::command::{AutocompleteValue, CommandModel, CreateCommand};
 use twilight_model::{application::interaction::Interaction, http::attachment::Attachment};
 

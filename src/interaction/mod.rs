@@ -27,7 +27,7 @@ pub mod command;
 
 pub static CREATE_COMMANDS: Lazy<Vec<Command>> = Lazy::new(|| {
     vec![
-        DrawCommand::create_command().into(),
+        //DrawCommand::create_command().into(),
         JishoCommand::create_command().into(),
         OpeningCommand::create_command().into(),
         SauceCommand::create_command().into(),

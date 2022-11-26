@@ -177,6 +177,17 @@ pub async fn build_embed(
             ResData::HMagazines(hmag) => embed
                 .title(hmag.title)
                 .field(EmbedFieldBuilder::new("Part:", hmag.part)),
+            ResData::Movies(movie) => {
+                let embed = embed
+                    .title(format!("{} ({})", movie.source, movie.year))
+                    .field(EmbedFieldBuilder::new("Timestamp:", movie.est_time).inline());
+                if let Some(part) = movie.part {
+                    embed.field(EmbedFieldBuilder::new("Part:", part).inline())
+                } else {
+                    embed
+                }
+            }
+
         };
 
     Ok((embed, attachment))
@@ -237,6 +248,7 @@ impl<'de> Deserialize<'de> for Res {
                 ResData::EHentai(SauceEHentaiData::deserialize(data).map_err(D::Error::custom)?)
             }
             21 | 22 => ResData::Anime(SauceAnimeData::deserialize(data).map_err(D::Error::custom)?),
+            23 => ResData::Movies(SauceMovieData::deserialize(data).map_err(D::Error::custom)?),
             25 => {
                 ResData::Gelbooru(SauceGelbooruData::deserialize(data).map_err(D::Error::custom)?)
             }
@@ -295,12 +307,14 @@ pub enum ResData {
     FurryNetwork(SauceFurryNetworkData),
     Kemono(SauceKemonoData),
     Skeb(SauceSkebData),
+    Movies(SauceMovieData),
 }
 
 impl ResData {
     pub fn get_ext_urls(&'_ self) -> Option<&'_ [String]> {
         match self {
             Self::HMagazines(_) => None,
+            Self::Movies(data) => Some(&data.ext_urls),
             Self::Pixiv(data) => Some(&data.ext_urls),
             Self::NicoNico(data) => Some(&data.ext_urls),
             Self::Danbooru(data) => Some(&data.ext_urls),
@@ -557,4 +571,14 @@ pub struct SauceSkebData {
     pub creator_name: String,
     pub author_name: Option<String>,
     pub author_url: String,
+}
+
+#[derive(Debug, Deserialize, Clone)]
+pub struct SauceMovieData {
+    pub ext_urls: Vec<String>,
+    pub source: String,
+    pub imdb_id: String,
+    pub part: Option<String>,
+    pub year: String,
+    pub est_time: String,
 }
