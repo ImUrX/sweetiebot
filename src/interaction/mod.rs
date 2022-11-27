@@ -79,7 +79,7 @@ pub async fn handle_interaction(
                     if let Err(e) = &command {
                         capture_anyhow(&e);
                         let err_string = format!(
-                            "An error occurred {}\n```\n{}\n```",
+                            "An error occurred, it has been reported and will be fixed soon {}\n```\n{}\n```",
                             SAD_EMOJIS.choose(&mut thread_rng()).unwrap(),
                             e
                         );
