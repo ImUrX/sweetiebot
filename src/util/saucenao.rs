@@ -187,7 +187,6 @@ pub async fn build_embed(
                     embed
                 }
             }
-
         };
 
     Ok((embed, attachment))

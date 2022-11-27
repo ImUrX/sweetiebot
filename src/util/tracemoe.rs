@@ -1,5 +1,5 @@
 use anyhow::Result;
-use sentry::{Breadcrumb, add_breadcrumb, Level};
+use sentry::{add_breadcrumb, Breadcrumb, Level};
 use serde::Deserialize;
 use twilight_model::{
     channel::{message::embed::EmbedField, Attachment},
