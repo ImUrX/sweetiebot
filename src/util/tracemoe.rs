@@ -1,4 +1,5 @@
 use anyhow::Result;
+use sentry::{Breadcrumb, add_breadcrumb, Level};
 use serde::Deserialize;
 use twilight_model::{
     channel::{message::embed::EmbedField, Attachment},
@@ -9,6 +10,16 @@ use twilight_util::builder::embed::{EmbedBuilder, ImageSource};
 use super::{censor_image, get_bytes, seconds_to_timestamp};
 
 pub async fn fetch(attachment: &Attachment) -> Result<TraceResponse> {
+    add_breadcrumb(Breadcrumb {
+        category: Some("trace.moe".into()),
+        message: Some(format!(
+            "Searching in trace.moe about {} ",
+            attachment.proxy_url.clone()
+        )),
+        level: Level::Info,
+        ..Default::default()
+    });
+
     let client = reqwest::Client::new();
     let res = client
         .post("https://api.trace.moe/search?anilistInfo")
@@ -109,9 +120,9 @@ pub enum AnilistField {
 #[derive(Deserialize, Debug)]
 #[serde(untagged)]
 pub enum EpisodeField {
-    Episode(i32),
+    Episode(f32),
     Name(String),
-    Range(Vec<i32>),
+    Range(Vec<f32>),
 }
 
 impl ToString for EpisodeField {
