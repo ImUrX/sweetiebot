@@ -1,5 +1,6 @@
 use std::env;
 
+use chrono::prelude::*;
 use sentry::{add_breadcrumb, Breadcrumb, Level};
 use serde::de::{Deserializer, Error};
 use serde::Deserialize;
@@ -113,7 +114,9 @@ pub async fn build_embed(
             ),
             ResData::Twitter(twitter) => embed
                 .title(format!("Tweet by {}", twitter.twitter_user_handle))
-                .timestamp(Timestamp::parse(&twitter.created_at)?),
+                .timestamp(Timestamp::from_secs(
+                    twitter.created_at.parse::<DateTime<Utc>>()?.timestamp(),
+                )?),
             ResData::EHentai(ehentai) => {
                 embed
                     .title(ehentai.source)
