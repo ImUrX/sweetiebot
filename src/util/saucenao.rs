@@ -189,7 +189,10 @@ pub async fn build_embed(
                 } else {
                     embed
                 }
-            }
+            },
+            ResData::Drawr(drawr) => embed
+                .title(drawr.title)
+                .author(EmbedAuthorBuilder::new(drawr.member_name))
         };
 
     Ok((embed, attachment))
@@ -244,6 +247,7 @@ impl<'de> Deserialize<'de> for Res {
             5 | 6 => ResData::Pixiv(SaucePixivData::deserialize(data).map_err(D::Error::custom)?),
             8 => ResData::NicoNico(SauceNicoNicoData::deserialize(data).map_err(D::Error::custom)?),
             9 => ResData::Danbooru(SauceDanbooruData::deserialize(data).map_err(D::Error::custom)?),
+            10 => ResData::Drawr(SauceDrawrData::deserialize(data).map_err(D::Error::custom)?),
             12 => ResData::Yandere(SauceYandereData::deserialize(data).map_err(D::Error::custom)?),
             16 => ResData::FAKKU(SauceFAKKUData::deserialize(data).map_err(D::Error::custom)?),
             18 | 38 => {
@@ -310,6 +314,7 @@ pub enum ResData {
     Kemono(SauceKemonoData),
     Skeb(SauceSkebData),
     Movies(SauceMovieData),
+    Drawr(SauceDrawrData)
 }
 
 impl ResData {
@@ -317,6 +322,7 @@ impl ResData {
         match self {
             Self::HMagazines(_) => None,
             Self::Movies(data) => Some(&data.ext_urls),
+            Self::Drawr(_) => None, // FIXME: Drawr no longer exists, find some way to convert the URL to pixiv sketch if possible
             Self::Pixiv(data) => Some(&data.ext_urls),
             Self::NicoNico(data) => Some(&data.ext_urls),
             Self::Danbooru(data) => Some(&data.ext_urls),
@@ -583,4 +589,13 @@ pub struct SauceMovieData {
     pub part: Option<String>,
     pub year: String,
     pub est_time: String,
+}
+
+#[derive(Debug, Deserialize, Clone)]
+pub struct SauceDrawrData {
+    pub ext_urls: Vec<String>,
+    pub title: String,
+    pub drawr_id: u32,
+    pub member_name: String,
+    pub member_id: u32,
 }
