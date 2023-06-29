@@ -261,17 +261,20 @@ impl<'de> Deserialize<'de> for Res {
             8 => ResData::NicoNico(SauceNicoNicoData::deserialize(data).map_err(D::Error::custom)?),
             9 => ResData::Danbooru(SauceDanbooruData::deserialize(data).map_err(D::Error::custom)?),
             10 => ResData::Drawr(SauceDrawrData::deserialize(data).map_err(D::Error::custom)?),
+            11 => ResData::NijieImages(SauceNijieImagesData::deserialize(data).map_err(D::Error::custom)?),
             12 => ResData::Yandere(SauceYandereData::deserialize(data).map_err(D::Error::custom)?),
             16 => ResData::FAKKU(SauceFAKKUData::deserialize(data).map_err(D::Error::custom)?),
             18 | 38 => {
                 ResData::EHentai(SauceEHentaiData::deserialize(data).map_err(D::Error::custom)?)
             }
+            20 => ResData::MediBang(SauceMediBangData::deserialize(data).map_err(D::Error::custom)?),
             21 | 22 => ResData::Anime(SauceAnimeData::deserialize(data).map_err(D::Error::custom)?),
             23 => ResData::Movies(SauceMovieData::deserialize(data).map_err(D::Error::custom)?),
             25 => {
                 ResData::Gelbooru(SauceGelbooruData::deserialize(data).map_err(D::Error::custom)?)
             }
             27 => ResData::Sankaku(SauceSankakuData::deserialize(data).map_err(D::Error::custom)?),
+            28 => ResData::AnimePictures(SauceAnimePicturesData::deserialize(data).map_err(D::Error::custom)?),
             29 => ResData::E621(SauceE621Data::deserialize(data).map_err(D::Error::custom)?),
             31 => ResData::Bcy(SauceBcyIllustData::deserialize(data).map_err(D::Error::custom)?),
             34 => ResData::DeviantArt(
