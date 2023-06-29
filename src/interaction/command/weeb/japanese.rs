@@ -11,7 +11,7 @@ use skia_safe::{
 use twilight_interactions::command::{AutocompleteValue, CommandModel, CreateCommand};
 use twilight_model::{
     application::{
-        command::{CommandOptionChoice, CommandOptionChoiceData},
+        command::{CommandOptionChoice, CommandOptionChoiceValue},
         interaction::Interaction,
     },
     channel::message::embed::EmbedField,
@@ -26,7 +26,7 @@ use twilight_util::builder::{
 };
 use twilight_validate::embed::FIELD_VALUE_LENGTH;
 use urlencoding::encode;
-use wana_kana::{is_hiragana::is_hiragana, to_hiragana::to_hiragana};
+use wana_kana::{ConvertJapanese, IsJapaneseStr};
 
 use crate::{
     util::{measure_text_width, EmbedList, DEFERRED_RESPONSE},
@@ -54,24 +54,24 @@ impl JishoCommandAutocomplete {
         let mut vec = Vec::new();
         if let AutocompleteValue::Focused(input) = &self.word {
             if input.is_empty() {
-                vec.push(CommandOptionChoice::String(CommandOptionChoiceData {
+                vec.push(CommandOptionChoice {
                     name: "例え".to_string(),
                     name_localizations: None,
-                    value: "例え".to_string(),
-                }));
+                    value: CommandOptionChoiceValue::String("例え".to_string()),
+                });
             } else {
-                vec.push(CommandOptionChoice::String(CommandOptionChoiceData {
+                vec.push(CommandOptionChoice {
                     name: input.clone(),
                     name_localizations: None,
-                    value: input.clone(),
-                }));
-                if is_hiragana(&to_hiragana(input)) {
+                    value: CommandOptionChoiceValue::String(input.clone()),
+                });
+                if input.to_hiragana().is_hiragana() {
                     let quoted = format!("\"{}\"", input);
-                    vec.push(CommandOptionChoice::String(CommandOptionChoiceData {
+                    vec.push(CommandOptionChoice {
                         name: quoted.clone(),
                         name_localizations: None,
-                        value: quoted,
-                    }));
+                        value: CommandOptionChoiceValue::String(quoted),
+                    });
                 }
             }
         }

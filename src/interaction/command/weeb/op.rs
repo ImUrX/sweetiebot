@@ -5,7 +5,7 @@ use rand::{seq::SliceRandom, thread_rng};
 use twilight_interactions::command::{AutocompleteValue, CommandModel, CreateCommand};
 use twilight_model::{
     application::{
-        command::{CommandOptionChoice, CommandOptionChoiceData},
+        command::{CommandOptionChoice, CommandOptionChoiceValue},
         interaction::Interaction,
     },
     channel::message::MessageFlags,
@@ -39,12 +39,10 @@ impl OpeningCommandAutocomplete {
         let vec = if let AutocompleteValue::Focused(input) = &self.theme {
             let res = search_theme(input, 25, info.pool).await?;
             res.iter()
-                .map(|s| {
-                    CommandOptionChoice::String(CommandOptionChoiceData {
-                        name: format!("{} {}", s.name, s.slug),
-                        name_localizations: None,
-                        value: format!("\0{}", s.theme_id),
-                    })
+                .map(|s| CommandOptionChoice {
+                    name: format!("{} {}", s.name, s.slug),
+                    name_localizations: None,
+                    value: CommandOptionChoiceValue::String(format!("\0{}", s.theme_id)),
                 })
                 .collect()
         } else {
@@ -98,7 +96,7 @@ impl OpeningCommand<'_> {
         };
 
         let videos = get_video(theme_id, info.pool).await?;
-        if videos.len() == 0 {
+        if videos.is_empty() {
             let response = InteractionResponse {
                 kind: InteractionResponseType::ChannelMessageWithSource,
                 data: Some(

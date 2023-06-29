@@ -7,7 +7,7 @@ use bonsaidb::local::{
     config::{Builder, StorageConfiguration},
     AsyncDatabase,
 };
-use futures::stream::StreamExt;
+use futures::StreamExt;
 use interaction::handle_interaction;
 use sentry::integrations::anyhow::capture_anyhow;
 use sqlx::{mysql::MySqlPoolOptions, MySql, Pool};
@@ -15,8 +15,8 @@ use std::{env, sync::Arc};
 use tokio_cron_scheduler::{Job, JobScheduler};
 use twilight_cache_inmemory::{InMemoryCache, ResourceType};
 use twilight_gateway::{
-    cluster::{Cluster, ShardScheme},
-    Event, Intents,
+    stream::{self, ShardEventStream},
+    Config, Event, Intents, ShardId,
 };
 use twilight_http::Client as HttpClient;
 use twilight_model::{
@@ -102,30 +102,10 @@ async fn main() -> Result<()> {
         });
     }
 
-    // Start a single shard.
-    let scheme = ShardScheme::Range {
-        from: 0,
-        to: 0,
-        total: 1,
-    };
-
     // Specify intents requesting events about things like new and updated
     // messages in a guild and direct messages.
     let intents = Intents::GUILD_MESSAGES | Intents::DIRECT_MESSAGES;
-
-    let (cluster, mut events) = Cluster::builder(token.clone(), intents)
-        .shard_scheme(scheme)
-        .build()
-        .await?;
-
-    let cluster = Arc::new(cluster);
-
-    // Start up the cluster
-    let cluster_spawn = cluster.clone();
-
-    tokio::spawn(async move {
-        cluster_spawn.up().await;
-    });
+    let config = Config::new(token.clone(), intents);
 
     // The http client is seperate from the gateway, so startup a new
     // one, also use Arc such that it can be cloned to other threads.
@@ -164,20 +144,42 @@ async fn main() -> Result<()> {
         println!("Updated {updated} commands and deleted {deleted} commands.");
     }
 
+    // Start a single shard.
+    let mut shards =
+        stream::create_range(0..1, 1, config, |_, builder| builder.build()).collect::<Vec<_>>();
+
+    // Create a stream to collect all of the shards and poll them for their next
+    // Discord gateway events.
+    let mut stream = ShardEventStream::new(shards.iter_mut());
+
     // Startup an event loop to process each event in the event stream as they
     // come in.
-    while let Some((shard_id, event)) = events.next().await {
-        // Update the cache.
-        info.cache.update(&event);
+    while let Some((shard, event)) = stream.next().await {
+        match event {
+            Ok(event) => {
+                // Update the cache.
+                info.cache.update(&event);
 
-        // Spawn a new task to handle the event
-        tokio::spawn(handle_event(shard_id, event, info.clone()));
+                // Spawn a new task to handle the event
+                tokio::spawn(handle_event(shard.id(), event, info.clone()));
+            }
+            Err(source) => {
+                println!("error receiving event {}", source);
+
+                // An error may be fatal when something like invalid privileged
+                // intents are specified or the Discord token is invalid.
+                if source.is_fatal() {
+                    break;
+                }
+
+                continue;
+            }
+        };
     }
-
     Ok(())
 }
 
-async fn handle_event(shard_id: u64, event: Event, info: ClusterData) -> Result<()> {
+async fn handle_event(shard: ShardId, event: Event, info: ClusterData) -> Result<()> {
     let _results = info.standby.process(&event);
     match event {
         Event::MessageCreate(msg) if msg.content.ends_with("ping") => {
@@ -187,7 +189,7 @@ async fn handle_event(shard_id: u64, event: Event, info: ClusterData) -> Result<
                 .await?;
         }
         Event::InteractionCreate(interaction) => {
-            let handler = handle_interaction(shard_id, interaction.clone(), info.clone()).await;
+            let handler = handle_interaction(shard, interaction.clone(), info.clone()).await;
             if let Err(err) = handler {
                 capture_anyhow(&err);
                 eprintln!(
@@ -196,11 +198,6 @@ async fn handle_event(shard_id: u64, event: Event, info: ClusterData) -> Result<
                 );
             }
         }
-        Event::ShardConnected(_) => println!("Connected on shard {}", shard_id),
-        Event::ShardDisconnected(reason) => println!(
-            "Disconnected on shard {} because of {:?}",
-            shard_id, reason.reason
-        ),
         _ => {}
     }
 
@@ -224,7 +221,7 @@ impl ClusterData {
         if interaction.is_dm() {
             return Ok(false);
         }
-        let channel_id = interaction.channel_id.expect("no channel id");
+        let channel_id = interaction.channel.as_ref().expect("no channel id").id;
         if let Some(channel) = self.cache.channel(channel_id) {
             Ok(channel.nsfw.unwrap_or(false))
         } else {

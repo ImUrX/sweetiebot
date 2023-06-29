@@ -189,10 +189,23 @@ pub async fn build_embed(
                 } else {
                     embed
                 }
-            },
+            }
             ResData::Drawr(drawr) => embed
                 .title(drawr.title)
-                .author(EmbedAuthorBuilder::new(drawr.member_name))
+                .author(EmbedAuthorBuilder::new(drawr.member_name)),
+            ResData::AnimePictures(pictures) => embed
+                .title(pictures.material)
+                .author(EmbedAuthorBuilder::new(pictures.creator)),
+            ResData::NijieImages(nijie) => embed.title(nijie.nijie_id.to_string()).author(
+                EmbedAuthorBuilder::new(nijie.member_name).url(format!(
+                    "https://nijie.info/members.php?id={}",
+                    nijie.member_id
+                )),
+            ),
+            ResData::MediBang(medi) => embed.title(medi.title).author(
+                EmbedAuthorBuilder::new(medi.member_name)
+                    .url(format!("https://medibang.com/author/{}", medi.member_id)),
+            ),
         };
 
     Ok((embed, attachment))
@@ -260,7 +273,7 @@ impl<'de> Deserialize<'de> for Res {
             }
             27 => ResData::Sankaku(SauceSankakuData::deserialize(data).map_err(D::Error::custom)?),
             29 => ResData::E621(SauceE621Data::deserialize(data).map_err(D::Error::custom)?),
-            31 => ResData::Bcy(SauceBcyData::deserialize(data).map_err(D::Error::custom)?),
+            31 => ResData::Bcy(SauceBcyIllustData::deserialize(data).map_err(D::Error::custom)?),
             34 => ResData::DeviantArt(
                 SauceDeviantArtData::deserialize(data).map_err(D::Error::custom)?,
             ),
@@ -302,7 +315,7 @@ pub enum ResData {
     Gelbooru(SauceGelbooruData),
     Sankaku(SauceSankakuData),
     E621(SauceE621Data),
-    Bcy(SauceBcyData),
+    Bcy(SauceBcyIllustData),
     DeviantArt(SauceDeviantArtData),
     Pawoo(SaucePawooData),
     Madokami(SauceMadokamiData),
@@ -314,7 +327,10 @@ pub enum ResData {
     Kemono(SauceKemonoData),
     Skeb(SauceSkebData),
     Movies(SauceMovieData),
-    Drawr(SauceDrawrData)
+    Drawr(SauceDrawrData),
+    AnimePictures(SauceAnimePicturesData),
+    NijieImages(SauceNijieImagesData),
+    MediBang(SauceMediBangData),
 }
 
 impl ResData {
@@ -336,14 +352,17 @@ impl ResData {
             Self::Bcy(data) => Some(&data.ext_urls),
             Self::DeviantArt(data) => Some(&data.ext_urls),
             Self::Pawoo(data) => Some(&data.ext_urls),
-            Self::Madokami(data) => Some(&data.ext_urls),
-            Self::Mangadex(data) => Some(&data.ext_urls),
-            Self::Artstation(data) => Some(&data.ext_urls),
-            Self::FurAffinity(data) => Some(&data.ext_urls),
-            Self::Twitter(data) => Some(&data.ext_urls),
-            Self::FurryNetwork(data) => Some(&data.ext_urls),
-            Self::Kemono(data) => Some(&data.ext_urls),
-            Self::Skeb(data) => Some(&data.ext_urls),
+            Self::Madokami(SauceMadokamiData { ext_urls, .. })
+            | Self::Mangadex(SauceMangadexData { ext_urls, .. })
+            | Self::Artstation(SauceArtstationData { ext_urls, .. })
+            | Self::FurAffinity(SauceFurAffinityData { ext_urls, .. })
+            | Self::Twitter(SauceTwitterData { ext_urls, .. })
+            | Self::FurryNetwork(SauceFurryNetworkData { ext_urls, .. })
+            | Self::Kemono(SauceKemonoData { ext_urls, .. })
+            | Self::Skeb(SauceSkebData { ext_urls, .. })
+            | Self::AnimePictures(SauceAnimePicturesData { ext_urls, .. })
+            | Self::NijieImages(SauceNijieImagesData { ext_urls, .. })
+            | Self::MediBang(SauceMediBangData { ext_urls, .. }) => Some(ext_urls),
         }
     }
 }
@@ -470,7 +489,7 @@ pub struct SauceE621Data {
 }
 
 #[derive(Debug, Deserialize, Clone)]
-pub struct SauceBcyData {
+pub struct SauceBcyIllustData {
     pub ext_urls: Vec<String>,
     pub bcy_id: u32,
     pub member_name: String,
@@ -596,6 +615,39 @@ pub struct SauceDrawrData {
     pub ext_urls: Vec<String>,
     pub title: String,
     pub drawr_id: u32,
+    pub member_name: String,
+    pub member_id: u32,
+}
+
+#[derive(Debug, Deserialize, Clone)]
+pub struct SauceAnimePicturesData {
+    pub ext_urls: Vec<String>,
+    #[serde(rename = "anime-pictures_id")]
+    pub anime_pictures_id: String,
+    /// Can be empty
+    pub creator: String,
+    /// Can be empty
+    pub material: String,
+    /// Can be empty
+    pub characters: String,
+    /// Can be empty
+    pub source: String,
+}
+
+#[derive(Debug, Deserialize, Clone)]
+pub struct SauceNijieImagesData {
+    pub ext_urls: Vec<String>,
+    pub title: String,
+    pub nijie_id: u32,
+    pub member_name: String,
+    pub member_id: u32,
+}
+
+#[derive(Debug, Deserialize, Clone)]
+pub struct SauceMediBangData {
+    pub ext_urls: Vec<String>,
+    pub title: String,
+    pub url: String,
     pub member_name: String,
     pub member_id: u32,
 }

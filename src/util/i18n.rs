@@ -49,7 +49,7 @@ pub fn get_all_of_key(key: &str) -> impl Iterator<Item = (String, Cow<str>)> + '
         };
 
         let mut errors = vec![];
-        let value = bundle.format_pattern(&pattern, None, &mut errors);
+        let value = bundle.format_pattern(pattern, None, &mut errors);
         (lang_ident.to_string(), value)
     })
 }

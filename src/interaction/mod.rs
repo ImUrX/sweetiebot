@@ -3,6 +3,7 @@ use anyhow::{bail, Result};
 use once_cell::sync::Lazy;
 use rand::{seq::SliceRandom, thread_rng};
 use sentry::integrations::anyhow::capture_anyhow;
+use twilight_gateway::ShardId;
 use twilight_interactions::command::{CommandModel, CreateCommand};
 use twilight_model::{
     application::{
@@ -35,7 +36,7 @@ pub static CREATE_COMMANDS: Lazy<Vec<Command>> = Lazy::new(|| {
 });
 
 pub async fn handle_interaction(
-    _shard_id: u64,
+    _shard: ShardId,
     interaction: Box<InteractionCreate>,
     info: ClusterData,
 ) -> Result<()> {
@@ -77,7 +78,7 @@ pub async fn handle_interaction(
                     };
 
                     if let Err(e) = &command {
-                        capture_anyhow(&e);
+                        capture_anyhow(e);
                         let err_string = format!(
                             "An error occurred, it has been reported and will be fixed soon {}\n```\n{}\n```",
                             SAD_EMOJIS.choose(&mut thread_rng()).unwrap(),
@@ -116,7 +117,7 @@ pub async fn handle_interaction(
                     println!(
                         "ID: {} <#{}> by <@{}>: /{} {:?}",
                         interaction.0.id,
-                        interaction.0.channel_id.unwrap(),
+                        interaction.0.channel.as_ref().unwrap().id,
                         interaction.0.author_id().unwrap(),
                         cmd.name,
                         cmd.options

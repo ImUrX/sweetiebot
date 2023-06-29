@@ -2,6 +2,7 @@ use std::borrow::Cow;
 use std::io::Cursor;
 
 use anyhow::Result;
+use base64::prelude::*;
 use image::{
     imageops::{replace, thumbnail},
     io::Reader as ImageReader,
@@ -48,8 +49,9 @@ impl DrawCommand<'_> {
         let res = get_txt2img(&req).await?;
         if let Some(images) = res.images {
             let mut img = RgbaImage::new(512, 512);
+
             for (i, (x, y)) in images.into_iter().zip(COORDINATES.iter()) {
-                let i = ImageReader::new(Cursor::new(base64::decode(i)?))
+                let i = ImageReader::new(Cursor::new(BASE64_STANDARD.decode(i)?))
                     .with_guessed_format()?
                     .decode()?;
                 let resize = thumbnail(&i, 256, 256);
