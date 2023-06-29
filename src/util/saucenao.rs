@@ -147,6 +147,9 @@ pub async fn build_embed(
             })
             | ResData::Gelbooru(SauceGelbooruData {
                 source, creator, ..
+            })
+            | ResData::Market2D(Sauce2DMarketData {
+                source, creator, ..
             }) => embed.title(source).author(EmbedAuthorBuilder::new(creator)),
             ResData::Madokami(madokami) => embed
                 .title(madokami.source)
@@ -193,9 +196,18 @@ pub async fn build_embed(
             ResData::Drawr(drawr) => embed
                 .title(drawr.title)
                 .author(EmbedAuthorBuilder::new(drawr.member_name)),
-            ResData::AnimePictures(pictures) => embed
-                .title(pictures.material)
-                .author(EmbedAuthorBuilder::new(pictures.creator)),
+            ResData::AnimePictures(SauceAnimePicturesData {
+                material, creator, ..
+            })
+            // FIXME: Is IdolComplex like this?
+            | ResData::IdolComplex(SauceIdolComplexData {
+                material, creator, ..
+            })
+            | ResData::Konachan(SauceKonachanData {
+                material, creator, ..
+            }) => embed
+                .title(material)
+                .author(EmbedAuthorBuilder::new(creator)),
             ResData::NijieImages(nijie) => embed.title(nijie.nijie_id.to_string()).author(
                 EmbedAuthorBuilder::new(nijie.member_name).url(format!(
                     "https://nijie.info/members.php?id={}",
@@ -261,21 +273,36 @@ impl<'de> Deserialize<'de> for Res {
             8 => ResData::NicoNico(SauceNicoNicoData::deserialize(data).map_err(D::Error::custom)?),
             9 => ResData::Danbooru(SauceDanbooruData::deserialize(data).map_err(D::Error::custom)?),
             10 => ResData::Drawr(SauceDrawrData::deserialize(data).map_err(D::Error::custom)?),
-            11 => ResData::NijieImages(SauceNijieImagesData::deserialize(data).map_err(D::Error::custom)?),
+            11 => ResData::NijieImages(
+                SauceNijieImagesData::deserialize(data).map_err(D::Error::custom)?,
+            ),
             12 => ResData::Yandere(SauceYandereData::deserialize(data).map_err(D::Error::custom)?),
             16 => ResData::FAKKU(SauceFAKKUData::deserialize(data).map_err(D::Error::custom)?),
             18 | 38 => {
                 ResData::EHentai(SauceEHentaiData::deserialize(data).map_err(D::Error::custom)?)
             }
-            20 => ResData::MediBang(SauceMediBangData::deserialize(data).map_err(D::Error::custom)?),
+            19 => {
+                ResData::Market2D(Sauce2DMarketData::deserialize(data).map_err(D::Error::custom)?)
+            }
+            20 => {
+                ResData::MediBang(SauceMediBangData::deserialize(data).map_err(D::Error::custom)?)
+            }
             21 | 22 => ResData::Anime(SauceAnimeData::deserialize(data).map_err(D::Error::custom)?),
             23 => ResData::Movies(SauceMovieData::deserialize(data).map_err(D::Error::custom)?),
             25 => {
                 ResData::Gelbooru(SauceGelbooruData::deserialize(data).map_err(D::Error::custom)?)
             }
+            26 => {
+                ResData::Konachan(SauceKonachanData::deserialize(data).map_err(D::Error::custom)?)
+            }
             27 => ResData::Sankaku(SauceSankakuData::deserialize(data).map_err(D::Error::custom)?),
-            28 => ResData::AnimePictures(SauceAnimePicturesData::deserialize(data).map_err(D::Error::custom)?),
+            28 => ResData::AnimePictures(
+                SauceAnimePicturesData::deserialize(data).map_err(D::Error::custom)?,
+            ),
             29 => ResData::E621(SauceE621Data::deserialize(data).map_err(D::Error::custom)?),
+            30 => ResData::IdolComplex(
+                SauceIdolComplexData::deserialize(data).map_err(D::Error::custom)?,
+            ),
             31 => ResData::Bcy(SauceBcyIllustData::deserialize(data).map_err(D::Error::custom)?),
             34 => ResData::DeviantArt(
                 SauceDeviantArtData::deserialize(data).map_err(D::Error::custom)?,
@@ -334,9 +361,47 @@ pub enum ResData {
     AnimePictures(SauceAnimePicturesData),
     NijieImages(SauceNijieImagesData),
     MediBang(SauceMediBangData),
+    IdolComplex(SauceIdolComplexData),
+    Konachan(SauceKonachanData),
+    Market2D(Sauce2DMarketData),
 }
 
 impl ResData {
+    pub fn is_nsfw_site(&self) -> bool {
+        match self {
+            Self::HMagazines(_)
+            | Self::FAKKU(_)
+            | Self::E621(_)
+            | Self::Gelbooru(_)
+            | Self::Kemono(_)
+            | Self::NijieImages(_)
+            | Self::Sankaku(_)
+            | Self::EHentai(_)
+            | Self::IdolComplex(_)
+            | Self::Konachan(_)
+            | Self::Market2D(_) => true,
+            Self::Anime(_)
+            | Self::AnimePictures(_)
+            | Self::Artstation(_)
+            | Self::Bcy(_)
+            | Self::Danbooru(_)
+            | Self::DeviantArt(_)
+            | Self::FurAffinity(_)
+            | Self::FurryNetwork(_)
+            | Self::Madokami(_)
+            | Self::Mangadex(_)
+            | Self::MediBang(_)
+            | Self::Movies(_)
+            | Self::NicoNico(_)
+            | Self::Pawoo(_)
+            | Self::Pixiv(_)
+            | Self::Skeb(_)
+            | Self::Twitter(_)
+            | Self::Drawr(_)
+            | Self::Yandere(_) => false,
+        }
+    }
+
     pub fn get_ext_urls(&'_ self) -> Option<&'_ [String]> {
         match self {
             Self::HMagazines(_) => None,
@@ -365,7 +430,10 @@ impl ResData {
             | Self::Skeb(SauceSkebData { ext_urls, .. })
             | Self::AnimePictures(SauceAnimePicturesData { ext_urls, .. })
             | Self::NijieImages(SauceNijieImagesData { ext_urls, .. })
-            | Self::MediBang(SauceMediBangData { ext_urls, .. }) => Some(ext_urls),
+            | Self::MediBang(SauceMediBangData { ext_urls, .. })
+            | Self::IdolComplex(SauceIdolComplexData { ext_urls, .. })
+            | Self::Konachan(SauceKonachanData { ext_urls, .. })
+            | Self::Market2D(Sauce2DMarketData { ext_urls, .. }) => Some(ext_urls),
         }
     }
 }
@@ -653,4 +721,36 @@ pub struct SauceMediBangData {
     pub url: String,
     pub member_name: String,
     pub member_id: u32,
+}
+
+#[derive(Debug, Deserialize, Clone)]
+pub struct SauceIdolComplexData {
+    pub ext_urls: Vec<String>,
+    pub idol_id: u32,
+    pub creator: String,
+    pub material: String,
+    /// Can be empty
+    pub characters: String,
+    /// Can be empty
+    pub source: String,
+}
+
+#[derive(Debug, Deserialize, Clone)]
+pub struct SauceKonachanData {
+    pub ext_urls: Vec<String>,
+    pub konachan_id: u32,
+    pub creator: String,
+    pub material: String,
+    /// Can be empty
+    pub characters: String,
+    /// Can be empty
+    pub source: String,
+}
+
+#[derive(Debug, Deserialize, Clone)]
+pub struct Sauce2DMarketData {
+    pub ext_urls: Vec<String>,
+    pub konachan_id: u32,
+    pub creator: String,
+    pub source: String,
 }
