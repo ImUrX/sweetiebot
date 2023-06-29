@@ -626,7 +626,7 @@ pub struct SauceDrawrData {
 pub struct SauceAnimePicturesData {
     pub ext_urls: Vec<String>,
     #[serde(rename = "anime-pictures_id")]
-    pub anime_pictures_id: String,
+    pub anime_pictures_id: u32,
     /// Can be empty
     pub creator: String,
     /// Can be empty
