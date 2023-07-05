@@ -71,8 +71,7 @@ pub async fn build_embed(
         }
     }
 
-    let embed =
-        match res.data.clone() {
+    let embed = match res.data.clone() {
             ResData::Pixiv(data) => embed
                 .author(
                     EmbedAuthorBuilder::new(data.member_name)
@@ -125,9 +124,10 @@ pub async fn build_embed(
                         50,
                     )))
             }
-            ResData::Bcy(bcy) => embed.title(bcy.title).author(
-                EmbedAuthorBuilder::new(bcy.member_name)
-                    .url(format!("https://bcy.net/u/{}", bcy.member_link_id)),
+            ResData::Bcy(SauceBcyIllustData { member_name, member_link_id, title, .. })
+            | ResData::BcyCoser(SauceBcyCosplayData { member_name, member_link_id, title, .. }) => embed.title(title).author(
+                EmbedAuthorBuilder::new(member_name)
+                    .url(format!("https://bcy.net/u/{}", member_link_id)),
             ),
             ResData::Pawoo(pawoo) => embed.title(format!("Toot by {}", pawoo.pawoo_user_username)),
             ResData::FAKKU(SauceFAKKUData {
@@ -304,6 +304,9 @@ impl<'de> Deserialize<'de> for Res {
                 SauceIdolComplexData::deserialize(data).map_err(D::Error::custom)?,
             ),
             31 => ResData::Bcy(SauceBcyIllustData::deserialize(data).map_err(D::Error::custom)?),
+            32 => {
+                ResData::BcyCoser(SauceBcyCosplayData::deserialize(data).map_err(D::Error::custom)?)
+            }
             34 => ResData::DeviantArt(
                 SauceDeviantArtData::deserialize(data).map_err(D::Error::custom)?,
             ),
@@ -346,6 +349,7 @@ pub enum ResData {
     Sankaku(SauceSankakuData),
     E621(SauceE621Data),
     Bcy(SauceBcyIllustData),
+    BcyCoser(SauceBcyCosplayData),
     DeviantArt(SauceDeviantArtData),
     Pawoo(SaucePawooData),
     Madokami(SauceMadokamiData),
@@ -384,6 +388,7 @@ impl ResData {
             | Self::AnimePictures(_)
             | Self::Artstation(_)
             | Self::Bcy(_)
+            | Self::BcyCoser(_)
             | Self::Danbooru(_)
             | Self::DeviantArt(_)
             | Self::FurAffinity(_)
@@ -433,7 +438,8 @@ impl ResData {
             | Self::MediBang(SauceMediBangData { ext_urls, .. })
             | Self::IdolComplex(SauceIdolComplexData { ext_urls, .. })
             | Self::Konachan(SauceKonachanData { ext_urls, .. })
-            | Self::Market2D(Sauce2DMarketData { ext_urls, .. }) => Some(ext_urls),
+            | Self::Market2D(Sauce2DMarketData { ext_urls, .. })
+            | Self::BcyCoser(SauceBcyCosplayData { ext_urls, .. }) => Some(ext_urls),
         }
     }
 }
@@ -753,4 +759,15 @@ pub struct Sauce2DMarketData {
     pub konachan_id: u32,
     pub creator: String,
     pub source: String,
+}
+
+#[derive(Debug, Deserialize, Clone)]
+pub struct SauceBcyCosplayData {
+    pub ext_urls: Vec<String>,
+    pub title: String,
+    pub bcy_id: u32,
+    pub member_name: String,
+    pub member_id: u32,
+    pub member_link_id: u32,
+    pub bcy_type: String,
 }
