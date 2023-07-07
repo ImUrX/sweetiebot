@@ -1,0 +1,58 @@
+{
+  "db_name": "MySQL",
+  "query": "\nSELECT theme_id, anime.name as name, anime_themes.slug as slug, songs.title as title\nFROM anime_themes\nINNER JOIN anime\nON anime.anime_id = anime_themes.anime_id\nLEFT JOIN anime_synonyms\nON anime_synonyms.anime_id = anime.anime_id\nLEFT JOIN songs\nON songs.song_id = anime_themes.song_id\nWHERE (anime.name LIKE CONCAT(\"%\", ?, \"%\")\nOR songs.title LIKE CONCAT(\"%\", ?, \"%\")\nOR anime_synonyms.text LIKE CONCAT(\"%\", ?, \"%\"))\nAND anime_themes.slug LIKE CONCAT(\"%\", ?, \"%\")\nGROUP BY theme_id\nLIMIT ?\n        ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "theme_id",
+        "type_info": {
+          "type": "LongLong",
+          "flags": "NOT_NULL | PRIMARY_KEY | UNSIGNED | AUTO_INCREMENT",
+          "char_set": 63,
+          "max_size": 20
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "name",
+        "type_info": {
+          "type": "VarString",
+          "flags": "NOT_NULL | NO_DEFAULT_VALUE",
+          "char_set": 224,
+          "max_size": 1020
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "slug",
+        "type_info": {
+          "type": "VarString",
+          "flags": "NOT_NULL | NO_DEFAULT_VALUE",
+          "char_set": 224,
+          "max_size": 1020
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "title",
+        "type_info": {
+          "type": "VarString",
+          "flags": "",
+          "char_set": 224,
+          "max_size": 1020
+        }
+      }
+    ],
+    "parameters": {
+      "Right": 5
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      true
+    ]
+  },
+  "hash": "9b458353c83cabe58ce6172142640f83ed2f36a8cbc7cccac3989e70b159689b"
+}

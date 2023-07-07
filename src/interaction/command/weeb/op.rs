@@ -131,8 +131,8 @@ impl OpeningCommand<'_> {
             data: Some(
                 InteractionResponseDataBuilder::new()
                     .content(format!(
-                        "{prelude}\nhttps://v.animethemes.moe/{}",
-                        videos[0].basename
+                        "{prelude}\nhttps://animethemes.moe/anime/{}/{}",
+                        videos[0].anime_slug, videos[0].theme_slug
                     ))
                     .build(),
             ),

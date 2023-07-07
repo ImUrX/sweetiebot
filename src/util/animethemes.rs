@@ -10,6 +10,8 @@ use sqlx::{query_as, MySql, Pool};
 use tokio::{io, process::Command};
 use tokio_util::io::StreamReader;
 
+
+// FIXME: AnimeThemes now has 2 different dumps on the same API, use the `wiki` one please.
 pub async fn update_database(bonsai: Arc<AsyncDatabase>) -> Result<()> {
     let client = reqwest::Client::new();
     let index = client
@@ -118,15 +120,13 @@ pub async fn get_video(theme_id: u64, pool: Pool<MySql>) -> Result<Vec<AnimeThem
     Ok(query_as!(
         AnimeThemeVideo,
         "
-SELECT songs.title as title, videos.basename as basename,
+SELECT songs.title as title, anime_themes.slug as theme_slug, anime.slug as anime_slug,
     artists.name as artist_name, artist_song.as as as_who
 FROM anime_theme_entries
 INNER JOIN anime_themes
 ON anime_theme_entries.theme_id = anime_themes.theme_id
-INNER JOIN anime_theme_entry_video
-ON anime_theme_entry_video.entry_id = anime_theme_entries.entry_id
-INNER JOIN videos
-ON anime_theme_entry_video.video_id = videos.video_id
+INNER JOIN anime
+ON anime.anime_id = anime_themes.anime_id
 LEFT JOIN songs
 ON songs.song_id = anime_themes.song_id
 LEFT JOIN artist_song
@@ -144,7 +144,8 @@ WHERE anime_theme_entries.theme_id = ?
 #[derive(Debug)]
 pub struct AnimeThemeVideo {
     pub title: Option<String>,
-    pub basename: String,
+    pub anime_slug: String,
+    pub theme_slug: String,
     pub artist_name: Option<String>,
     pub as_who: Option<String>,
 }
