@@ -126,12 +126,21 @@ impl OpeningCommand<'_> {
             prelude += &format!(" from {name}");
         }
 
+        let tags = {
+            let tags = videos[0].get_tag();
+            if tags.is_empty() {
+                "".to_string()
+            } else {
+                format!("-{}", tags.join(""))
+            }
+        };
+
         let response = InteractionResponse {
             kind: InteractionResponseType::ChannelMessageWithSource,
             data: Some(
                 InteractionResponseDataBuilder::new()
                     .content(format!(
-                        "{prelude}\nhttps://animethemes.moe/anime/{}/{}",
+                        "{prelude}\nhttps://animethemes.moe/anime/{}/{}{tags}",
                         videos[0].anime_slug, videos[0].theme_slug
                     ))
                     .build(),

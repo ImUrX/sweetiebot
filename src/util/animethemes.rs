@@ -1,4 +1,4 @@
-use std::{env, process::Stdio, sync::Arc};
+use std::{env, process::Stdio, sync::Arc, borrow::Cow};
 
 use anyhow::Result;
 use bonsaidb::{core::keyvalue::AsyncKeyValue, local::AsyncDatabase};
@@ -9,7 +9,6 @@ use serde::Deserialize;
 use sqlx::{query_as, MySql, Pool};
 use tokio::{io, process::Command};
 use tokio_util::io::StreamReader;
-
 
 // FIXME: AnimeThemes now has 2 different dumps on the same API, use the `wiki` one please.
 pub async fn update_database(bonsai: Arc<AsyncDatabase>) -> Result<()> {
@@ -121,12 +120,18 @@ pub async fn get_video(theme_id: u64, pool: Pool<MySql>) -> Result<Vec<AnimeThem
         AnimeThemeVideo,
         "
 SELECT songs.title as title, anime_themes.slug as theme_slug, anime.slug as anime_slug,
-    artists.name as artist_name, artist_song.as as as_who
+    artists.name as artist_name, artist_song.as as as_who, videos.nc as `nc: bool`,
+    videos.source as `source: VideoSource`, videos.subbed as `subbed: bool`,
+    videos.resolution as resolution, videos.lyrics as `lyrics: bool`
 FROM anime_theme_entries
 INNER JOIN anime_themes
 ON anime_theme_entries.theme_id = anime_themes.theme_id
 INNER JOIN anime
 ON anime.anime_id = anime_themes.anime_id
+INNER JOIN anime_theme_entry_video
+ON anime_theme_entry_video.entry_id = anime_theme_entries.entry_id
+INNER JOIN videos
+ON anime_theme_entry_video.video_id = videos.video_id
 LEFT JOIN songs
 ON songs.song_id = anime_themes.song_id
 LEFT JOIN artist_song
@@ -146,8 +151,54 @@ pub struct AnimeThemeVideo {
     pub title: Option<String>,
     pub anime_slug: String,
     pub theme_slug: String,
+    pub nc: bool,
+    pub source: Option<VideoSource>,
+    pub resolution: Option<i32>,
+    pub subbed: bool,
+    pub lyrics: bool,
     pub artist_name: Option<String>,
     pub as_who: Option<String>,
+}
+
+impl<'t> AnimeThemeVideo {
+    // https://github.com/AnimeThemes/animethemes-server/blob/main/app/Models/Wiki/Video.php#L149
+    pub fn get_tag(&self) -> Vec<Cow<str>> {
+        let mut tags: Vec<Cow<str>> = vec![];
+        if self.nc { tags.push(Cow::Borrowed("NC")) }
+
+        if let Some(ref source) = self.source {
+            // 
+            match source {
+                VideoSource::BD => tags.push(Cow::Borrowed("BD")),
+                VideoSource::DVD => tags.push(Cow::Borrowed("DVD")),
+                _ => {}
+            }
+        }
+
+        if let Some(res) = self.resolution {
+            if res != 720 {
+                tags.push(Cow::Owned(res.to_string()))
+            }
+        }
+
+        if self.subbed { tags.push(Cow::Borrowed("Subbed")) }
+
+        if self.lyrics { tags.push(Cow::Borrowed("Lyrics")) }
+
+        tags
+    }
+}
+
+#[derive(sqlx::Type, Debug)]
+#[repr(i32)]
+// https://github.com/AnimeThemes/animethemes-server/blob/main/app/Enums/Models/Wiki/VideoSource.php#L12
+pub enum VideoSource {
+    WEB = 0,
+    RAW = 1,
+    BD = 2,
+    DVD = 3,
+    VHS = 4,
+    LD = 5,
 }
 
 #[derive(Debug)]
