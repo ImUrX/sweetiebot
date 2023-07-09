@@ -78,13 +78,14 @@ pub async fn build_embed(
                         .url(format!("https://www.pixiv.net/users/${}", data.member_id)),
                 )
                 .title(data.title),
-            ResData::Anime(data) => if let Some(part) = data.part {
+            ResData::Anime(SauceAnimeData { part, est_time, source, .. })
+            | ResData::Shows(SauceShowData { part, est_time, source, ..}) => if let Some(part) = part {
                 embed.field(EmbedFieldBuilder::new("Part:", part).inline())
             } else {
                 embed
             }
-            .field(EmbedFieldBuilder::new("Timestamp:", data.est_time).inline())
-            .title(data.source),
+            .field(EmbedFieldBuilder::new("Timestamp:", est_time).inline())
+            .title(source),
             ResData::DeviantArt(SauceDeviantArtData {
                 title,
                 author_name,
@@ -289,6 +290,7 @@ impl<'de> Deserialize<'de> for Res {
             }
             21 | 22 => ResData::Anime(SauceAnimeData::deserialize(data).map_err(D::Error::custom)?),
             23 => ResData::Movies(SauceMovieData::deserialize(data).map_err(D::Error::custom)?),
+            24 => ResData::Shows(SauceShowData::deserialize(data).map_err(D::Error::custom)?),
             25 => {
                 ResData::Gelbooru(SauceGelbooruData::deserialize(data).map_err(D::Error::custom)?)
             }
@@ -368,6 +370,7 @@ pub enum ResData {
     IdolComplex(SauceIdolComplexData),
     Konachan(SauceKonachanData),
     Market2D(Sauce2DMarketData),
+    Shows(SauceShowData),
 }
 
 impl ResData {
@@ -403,7 +406,8 @@ impl ResData {
             | Self::Skeb(_)
             | Self::Twitter(_)
             | Self::Drawr(_)
-            | Self::Yandere(_) => false,
+            | Self::Yandere(_)
+            | Self::Shows(_) => false,
         }
     }
 
@@ -439,7 +443,8 @@ impl ResData {
             | Self::IdolComplex(SauceIdolComplexData { ext_urls, .. })
             | Self::Konachan(SauceKonachanData { ext_urls, .. })
             | Self::Market2D(Sauce2DMarketData { ext_urls, .. })
-            | Self::BcyCoser(SauceBcyCosplayData { ext_urls, .. }) => Some(ext_urls),
+            | Self::BcyCoser(SauceBcyCosplayData { ext_urls, .. })
+            | Self::Shows(SauceShowData { ext_urls, ..}) => Some(ext_urls),
         }
     }
 }
@@ -770,4 +775,14 @@ pub struct SauceBcyCosplayData {
     pub member_id: u32,
     pub member_link_id: u32,
     pub bcy_type: String,
+}
+
+#[derive(Debug, Deserialize, Clone)]
+pub struct SauceShowData {
+    pub ext_urls: Vec<String>,
+    pub imdb_id: String,
+    pub part: Option<String>,
+    pub year: Option<String>,
+    pub est_time: String,
+    pub source: String,
 }
