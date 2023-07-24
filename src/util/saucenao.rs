@@ -761,7 +761,7 @@ pub struct SauceKonachanData {
 #[derive(Debug, Deserialize, Clone)]
 pub struct Sauce2DMarketData {
     pub ext_urls: Vec<String>,
-    pub konachan_id: u32,
+    pub konachan_id: Option<u32>,
     pub creator: String,
     pub source: String,
 }
